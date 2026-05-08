@@ -38,3 +38,6 @@ src/.env
 *.sln
 *.sw?
 *.local
+
+# Deno (you had this issue earlier)
+deno.lock
