@@ -10,7 +10,7 @@ import UpdateProfile from './user/pages/UpdateProfile';
 import ViewQr from './user/pages/ViewQr';
 import SelectLayout from './user/pages/SelectLayout';
 
-// Protected Route Component
+// Protected Route - for pages that require login
 const ProtectedRoute = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -41,14 +41,49 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Public Route - redirects to home if already logged in
+const PublicRoute = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return children;
+};
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
+        {/* Public Routes - redirects to home if logged in */}
+        <Route path="/login" element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } />
         
-        {/* Protected Routes */}
+        {/* Protected Routes - require login */}
         <Route path="/" element={
           <ProtectedRoute>
             <Home />

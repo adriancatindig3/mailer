@@ -6,4 +6,4 @@ function ViewQr(){
     )
 }
 
-export default ViewQr;
+export default ViewQr

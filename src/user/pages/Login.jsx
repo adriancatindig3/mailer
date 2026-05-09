@@ -1,7 +1,7 @@
 // src/user/pages/Login.jsx
 
-import { useState } from 'react';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -9,7 +9,20 @@ import { motion } from 'framer-motion';
 function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // If already logged in, redirect to home
+        navigate('/home', { replace: true });
+      }
+      setCheckingAuth(false);
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -21,13 +34,21 @@ function Login() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       console.log('User:', user);
-      navigate('/home');
+      navigate('/home', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
@@ -37,7 +58,6 @@ function Login() {
         transition={{ duration: 0.5 }}
         className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-md p-8"
       >
-        {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-2xl">QR</span>
@@ -90,7 +110,6 @@ function Login() {
           )}
         </button>
 
-        {/* Divider */}
         <div className="relative my-8">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-100"></div>
@@ -100,7 +119,6 @@ function Login() {
           </div>
         </div>
 
-        {/* Footer */}
         <p className="text-center text-xs text-gray-400">
           By continuing, you agree to our{' '}
           <a href="#" className="text-gray-900 hover:underline">Terms</a>
