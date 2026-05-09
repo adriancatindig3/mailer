@@ -153,7 +153,7 @@ const SelectLayout = () => {
   );
 
   const Layout3 = () => (
-    <div className="w-full h-full bg-white overflow-y-auto font-['Inter']">
+    <div className="w-full bg-white font-['Inter']">
       <div className="pt-6 pb-4 px-4">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
@@ -180,7 +180,7 @@ const SelectLayout = () => {
   );
 
   const Layout4 = () => (
-    <div className="w-full h-full overflow-y-auto font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
+    <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
       <div className="h-36 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a2e1a, #0f1f0f)' }}>
         {userData?.coverPhotoURL && <img src={userData.coverPhotoURL} alt="" className="w-full h-full object-cover opacity-60" />}
       </div>
@@ -202,7 +202,7 @@ const SelectLayout = () => {
   );
 
   const Layout5 = () => (
-    <div className="w-full h-full overflow-y-auto font-['Inter']" style={{ background: '#0d1b2e' }}>
+    <div className="w-full font-['Inter']" style={{ background: '#0d1b2e' }}>
       <div className="h-36 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0d1b2e, #1a3a5c)' }}>
         {userData?.coverPhotoURL && <img src={userData.coverPhotoURL} alt="" className="w-full h-full object-cover brightness-75" />}
       </div>
@@ -224,7 +224,7 @@ const SelectLayout = () => {
   );
 
   const Layout6 = () => (
-    <div className="w-full h-full bg-white overflow-y-auto font-['Inter']">
+    <div className="w-full bg-white font-['Inter']">
       <div className="h-36 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1f2937, #111827)' }}>
         {userData?.coverPhotoURL && <img src={userData.coverPhotoURL} alt="" className="w-full h-full object-cover" />}
       </div>
@@ -246,7 +246,7 @@ const SelectLayout = () => {
   );
 
   const Layout7 = () => (
-    <div className="w-full h-full overflow-y-auto font-['Inter'] text-white" style={{ background: 'linear-gradient(160deg, #2a3a2a, #1a2a1e)' }}>
+    <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(160deg, #2a3a2a, #1a2a1e)' }}>
       <div className="flex flex-col items-center pt-8 pb-4 px-4">
         <div className="w-24 h-24 rounded-full overflow-hidden border-2 mb-3" style={{ borderColor: 'rgba(255,255,255,0.3)' }}>
           {userData?.photoURL ? <img src={userData.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-green-900 text-white text-2xl font-medium">{getInitials(userData?.displayName)}</div>}
@@ -265,7 +265,7 @@ const SelectLayout = () => {
   );
 
   const Layout8 = () => (
-    <div className="w-full h-full overflow-y-auto font-['Inter'] text-white" style={{ background: '#0f1623' }}>
+    <div className="w-full font-['Inter'] text-white" style={{ background: '#0f1623' }}>
       <div className="flex flex-col items-center pt-8 pb-4 px-4">
         <div className="w-24 h-24 rounded-full overflow-hidden border-2 mb-3" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
           {userData?.photoURL ? <img src={userData.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-slate-700 text-white text-2xl font-medium">{getInitials(userData?.displayName)}</div>}
@@ -284,7 +284,7 @@ const SelectLayout = () => {
   );
 
   const Layout9 = () => (
-    <div className="w-full h-full bg-white overflow-y-auto font-['Inter']">
+    <div className="w-full bg-white font-['Inter']">
       <div className="flex flex-col items-center pt-8 pb-4 px-4">
         <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-gray-200 mb-3">
           {userData?.photoURL ? <img src={userData.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-700 text-white text-2xl font-medium">{getInitials(userData?.displayName)}</div>}
@@ -496,15 +496,15 @@ const SelectLayout = () => {
           {layouts.map((layout) => (
             <div key={layout.id} className="flex flex-col gap-2">
               <div
-                className={`rounded-2xl overflow-hidden cursor-pointer transition-all ${
+                className={`rounded-2xl cursor-pointer transition-all ${
                   selectedLayout === layout.id
                     ? 'ring-2 ring-blue-500 shadow-lg'
                     : 'ring-1 ring-gray-200 hover:ring-gray-400 hover:shadow-md'
                 }`}
-                style={{ height: '520px' }}
+                style={{ minHeight: '620px' }}
                 onClick={() => handleSelectLayout(layout.id)}
               >
-                <div className="w-full h-full overflow-hidden pointer-events-none">
+                <div className="w-full pointer-events-none rounded-2xl overflow-hidden">
                   {layout.component}
                 </div>
               </div>
