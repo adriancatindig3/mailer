@@ -1,67 +1,24 @@
-import { useState } from "react";
+// src/App.jsx
 
-export default function App() {
-  const [recipient, setRecipient] = useState("");
-  const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("");
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Login from './user/pages/Login';
+import Home from './user/pages/Home';
+import UpdateProfile from './user/pages/UpdateProfile';
+import ViewQr from './user/pages/ViewQr';
+import SelectLayout from './user/pages/SelectLayout';
 
-  const sendEmail = async () => {
-    setStatus("Sending...");
-
-    try {
-      const res = await fetch("/.netlify/functions/sendMail", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          recipient,
-          message
-        })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setStatus("Email sent successfully!");
-        setRecipient("");
-        setMessage("");
-      } else {
-        setStatus(data.error || "Failed to send email");
-      }
-
-    } catch (err) {
-      setStatus("Error sending email");
-    }
-  };
-
+function App() {
   return (
-    <div style={{ maxWidth: "400px", margin: "50px auto", fontFamily: "Arial" }}>
-      <h2>Send Email</h2>
-
-      <input
-        type="email"
-        placeholder="Recipient email"
-        value={recipient}
-        onChange={(e) => setRecipient(e.target.value)}
-        style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
-      />
-
-      <textarea
-        placeholder="Message"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        style={{ width: "100%", height: "120px", padding: "10px", marginBottom: "10px" }}
-      />
-
-      <button
-        onClick={sendEmail}
-        style={{ width: "100%", padding: "10px", cursor: "pointer" }}
-      >
-        Send Email
-      </button>
-
-      <p>{status}</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/updateprofile" element={<UpdateProfile />} />
+        <Route path="/viewqr" element={<ViewQr />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
+
+export default App;
