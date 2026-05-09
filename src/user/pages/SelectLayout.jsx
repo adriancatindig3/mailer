@@ -22,6 +22,9 @@ const SelectLayout = () => {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [slideDirection, setSlideDirection] = useState(null); // 'left' | 'right'
   const navigate = useNavigate();
   const cccLogoUrl = cccLogo;
 
@@ -96,7 +99,7 @@ const SelectLayout = () => {
   // ─── LAYOUTS ────────────────────────────────────────────────────────────────
 
   const Layout1 = () => (
-    <div className="w-full h-full overflow-y-auto font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
+    <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
       <div className="pt-6 pb-4 px-4">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0" style={{ background: '#2a3f2a', border: '2px solid rgba(255,255,255,0.2)' }}>
@@ -123,7 +126,7 @@ const SelectLayout = () => {
   );
 
   const Layout2 = () => (
-    <div className="w-full h-full overflow-y-auto font-['Inter'] text-white" style={{ background: '#0f1623' }}>
+    <div className="w-full font-['Inter'] text-white" style={{ background: '#0f1623' }}>
       <div className="pt-6 pb-4 px-4">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0" style={{ background: '#1e2d45', border: '2px solid rgba(255,255,255,0.15)' }}>
@@ -314,17 +317,58 @@ const SelectLayout = () => {
   // ─── TOUCH SWIPE ────────────────────────────────────────────────────────────
   const minSwipeDistance = 50;
 
-  const onTouchStart = (e) => setTouchStart(e.targetTouches[0].clientX);
-  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchStart = (e) => {
+    setTouchStart(e.targetTouches[0].clientX);
+    setTouchEnd(null);
+    setDragOffset(0);
+  };
+
+  const onTouchMove = (e) => {
+    const current = e.targetTouches[0].clientX;
+    setTouchEnd(current);
+    if (touchStart !== null) {
+      const offset = current - touchStart;
+      // Clamp drag so it doesn't go too far and rubber-band at edges
+      const clamped = Math.max(-120, Math.min(120, offset));
+      setDragOffset(clamped);
+    }
+  };
+
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd) { setDragOffset(0); return; }
     const distance = touchStart - touchEnd;
-    if (Math.abs(distance) >= minSwipeDistance) {
-      if (distance > 0 && currentIndex < layouts.length - 1) setCurrentIndex(i => i + 1);
-      if (distance < 0 && currentIndex > 0) setCurrentIndex(i => i - 1);
+    const goNext = distance > minSwipeDistance && currentIndex < layouts.length - 1;
+    const goPrev = distance < -minSwipeDistance && currentIndex > 0;
+
+    if (goNext || goPrev) {
+      setIsAnimating(true);
+      setSlideDirection(goNext ? 'left' : 'right');
+      setDragOffset(goNext ? -window.innerWidth : window.innerWidth);
+      setTimeout(() => {
+        setCurrentIndex(i => goNext ? i + 1 : i - 1);
+        setDragOffset(0);
+        setIsAnimating(false);
+        setSlideDirection(null);
+      }, 280);
+    } else {
+      // Snap back
+      setDragOffset(0);
     }
     setTouchStart(null);
     setTouchEnd(null);
+  };
+
+  const goToIndex = (newIndex) => {
+    if (newIndex === currentIndex) return;
+    setIsAnimating(true);
+    setSlideDirection(newIndex > currentIndex ? 'left' : 'right');
+    setDragOffset(newIndex > currentIndex ? -window.innerWidth : window.innerWidth);
+    setTimeout(() => {
+      setCurrentIndex(newIndex);
+      setDragOffset(0);
+      setIsAnimating(false);
+      setSlideDirection(null);
+    }, 280);
   };
 
   if (!user || !userData) {
@@ -342,6 +386,7 @@ const SelectLayout = () => {
 
       {/* ── MOBILE: swipeable full-screen card ── */}
       <div className="md:hidden flex flex-col h-screen">
+
         {/* Counter + label */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2 flex-shrink-0">
           <h2 className="text-base font-semibold text-gray-900">Choose a theme</h2>
@@ -353,38 +398,71 @@ const SelectLayout = () => {
           {layouts.map((_, i) => (
             <button
               key={i}
-              onClick={() => setCurrentIndex(i)}
+              onClick={() => goToIndex(i)}
               className={`rounded-full transition-all ${i === currentIndex ? 'w-5 h-2 bg-gray-900' : 'w-2 h-2 bg-gray-300'}`}
             />
           ))}
         </div>
 
-        {/* Swipeable preview — fills remaining height */}
-        <div
-          className="flex-1 mx-4 rounded-2xl overflow-hidden relative"
-          style={{ minHeight: 0 }}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
-          {/* Selected ring */}
-          {selectedLayout === currentLayout.id && (
-            <div className="absolute inset-0 ring-2 ring-blue-500 rounded-2xl z-10 pointer-events-none" />
-          )}
-          <div className="w-full h-full overflow-hidden">
-            {currentLayout.component}
-          </div>
-          {/* Swipe hint arrows */}
-          <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none z-10">
-            {currentIndex > 0 && <div className="w-7 h-7 bg-black/30 rounded-full flex items-center justify-center text-white text-xs">‹</div>}
-          </div>
-          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none z-10">
-            {currentIndex < layouts.length - 1 && <div className="w-7 h-7 bg-black/30 rounded-full flex items-center justify-center text-white text-xs">›</div>}
+        {/* Scrollable card area — card shows full height, user can scroll down */}
+        <div className="flex-1 overflow-y-auto px-4 pb-2" style={{ minHeight: 0 }}>
+          <div className="relative rounded-2xl overflow-hidden">
+            {/* Selected ring */}
+            {selectedLayout === currentLayout.id && (
+              <div className="absolute inset-0 ring-2 ring-blue-500 rounded-2xl z-10 pointer-events-none" />
+            )}
+
+            {/* Animated card wrapper — natural height, not clipped */}
+            <div
+              className="w-full rounded-2xl overflow-hidden"
+              style={{
+                transform: `translateX(${dragOffset}px) scale(${isAnimating ? 0.97 : dragOffset !== 0 ? Math.max(0.94, 1 - Math.abs(dragOffset) / 800) : 1})`,
+                transition: isAnimating
+                  ? 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease'
+                  : dragOffset === 0
+                  ? 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  : 'none',
+                opacity: isAnimating ? 0 : Math.max(0.6, 1 - Math.abs(dragOffset) / 300),
+              }}
+            >
+              {currentLayout.component}
+            </div>
+
+            {/* Transparent touch-capture overlay */}
+            <div
+              className="absolute inset-0 z-20"
+              style={{ touchAction: 'pan-y' }}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            />
+
+            {/* Left arrow */}
+            {currentIndex > 0 && (
+              <button
+                className="absolute left-2 top-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
+                onClick={() => goToIndex(currentIndex - 1)}
+              >
+                ‹
+              </button>
+            )}
+
+            {/* Right arrow */}
+            {currentIndex < layouts.length - 1 && (
+              <button
+                className="absolute right-2 top-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
+                onClick={() => goToIndex(currentIndex + 1)}
+              >
+                ›
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Select button */}
-        <div className="px-4 py-4 flex-shrink-0">
+        {/* Select button — fixed at bottom */}
+        <div className="px-4 py-4 flex-shrink-0 bg-gray-50 border-t border-gray-100">
           <button
             onClick={() => handleSelectLayout(currentLayout.id)}
             disabled={loading && selectedLayout === currentLayout.id}
@@ -417,7 +495,6 @@ const SelectLayout = () => {
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
           {layouts.map((layout) => (
             <div key={layout.id} className="flex flex-col gap-2">
-              {/* Raw preview — no outer card, just the layout itself */}
               <div
                 className={`rounded-2xl overflow-hidden cursor-pointer transition-all ${
                   selectedLayout === layout.id
@@ -432,7 +509,6 @@ const SelectLayout = () => {
                 </div>
               </div>
 
-              {/* Label + button below the card */}
               <button
                 onClick={() => handleSelectLayout(layout.id)}
                 disabled={loading && selectedLayout === layout.id}
