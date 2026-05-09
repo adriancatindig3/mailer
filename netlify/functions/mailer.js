@@ -44,7 +44,7 @@ export const sendMail = async (to, subject, message) => {
             color:#ffffff;
           ">
             <h1 style="margin:0;font-size:18px;">
-              📩 New Message
+              📩 New Messageeeeeeeeeee
             </h1>
           </div>
 
