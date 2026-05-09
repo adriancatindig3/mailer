@@ -129,7 +129,7 @@ function Settings() {
         {/* App Info */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
           <div className="p-5 text-center">
-            <p className="text-xs font-mono text-gray-400">ProfileQR v1.0.0</p>
+            <p className="text-xs font-mono text-gray-400">ProfileQR v1.0.00</p>
             <p className="text-[10px] text-gray-300 mt-1">© 2024 ProfileQR. All rights reserved.</p>
           </div>
         </div>
