@@ -1,7 +1,7 @@
 // src/user/pages/Home.jsx
 
 import { useState, useEffect } from 'react';
-import { useNavigate, NavLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -11,8 +11,8 @@ import {
   Palette,
   Settings,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
+  Menu,
+  X,
 } from 'lucide-react';
 import { auth } from '../../config/firebase';
 import UpdateProfile from './UpdateProfile';
@@ -20,46 +20,12 @@ import ViewQr from './ViewQr';
 import SelectLayout from './SelectLayout';
 import SettingsPage from './Settings';
 
-// Custom hook for media queries
-const useMediaQuery = (query) => {
-  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    const listener = (e) => setMatches(e.matches);
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
-  }, [query]);
-  return matches;
-};
-
-const NAV_ITEMS = [
-  { to: "dashboard", label: "Dashboard", icon: LayoutDashboard, group: "overview" },
-  { to: "qr", label: "My QR", icon: QrCode, group: "overview" },
-  { to: "profile", label: "Edit Profile", icon: User, group: "profile" },
-  { to: "themes", label: "Themes", icon: Palette, group: "profile" },
-  { to: "settings", label: "Settings", icon: Settings, group: "settings" },
-];
-
-const GROUPS = ["overview", "profile", "settings"];
-const GROUP_LABELS = {
-  overview: "Main",
-  profile: "Profile",
-  settings: "Preferences",
-};
-
-const SPRING = { type: "spring", stiffness: 380, damping: 36, mass: 0.8 };
-const SPRING_NAV = { type: "spring", stiffness: 500, damping: 30 };
-
 function Home() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  const isMobile = useMediaQuery("(max-width: 768px)");
-  const [isCollapsed, setIsCollapsed] = useState(isMobile);
-  const effectiveCollapsed = isMobile ? true : isCollapsed;
-  const sidebarWidth = effectiveCollapsed ? 80 : 240;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -73,21 +39,22 @@ function Home() {
     return () => unsubscribe();
   }, [navigate]);
 
-  const toggleCollapse = () => setIsCollapsed((prev) => !prev);
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
-  // const handleLogout = async () => {
-  //   await auth.signOut();
-  //   navigate('/login');
-  // };
-  // In Home.jsx, update the handleLogout function
-const handleLogout = async () => {
-  try {
-    await auth.signOut();
-    navigate('/login', { replace: true });
-  } catch (error) {
-    console.error('Logout error:', error);
-  }
-};
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'qr', label: 'My QR', icon: QrCode },
+    { id: 'profile', label: 'Edit Profile', icon: User },
+    { id: 'themes', label: 'Themes', icon: Palette },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ];
 
   if (loading) {
     return (
@@ -101,266 +68,220 @@ const handleLogout = async () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Animated Sidebar */}
-      <motion.aside
-        initial={{ x: -24, opacity: 0 }}
-        animate={{ x: 0, opacity: 1, width: sidebarWidth }}
-        transition={SPRING}
-        className="flex-shrink-0 flex flex-col bg-white border-r border-gray-200 relative overflow-hidden"
-        style={{ zIndex: 100 }}
-      >
-        {/* Logo Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.3 }}
-          className={`${effectiveCollapsed ? 'py-5 px-2' : 'p-5'} border-b border-gray-200 flex ${effectiveCollapsed ? 'justify-center' : 'justify-start'}`}
-        >
-          <div className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'justify-start'} min-h-[55px] ${effectiveCollapsed ? 'gap-0' : 'gap-3'}`}>
-            <div className={`${effectiveCollapsed ? 'w-10 h-10' : 'w-12 h-12'} bg-black rounded-xl flex items-center justify-center text-white font-bold text-xl transition-all duration-200`}>
-              QR
-            </div>
-            <AnimatePresence initial={false}>
-              {!effectiveCollapsed && (
-                <motion.div
-                  key="logo-text"
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -6 }}
-                  transition={{ duration: 0.18 }}
-                >
-                  <div className="text-sm font-bold text-gray-900 whitespace-nowrap">ProfileQR</div>
-                  <div className="text-[9px] text-gray-400 font-mono mt-0.5 whitespace-nowrap">Digital Business Card</div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Header with Hamburger */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-50">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">QR</span>
           </div>
-        </motion.div>
+          <span className="font-semibold text-gray-900">ProfileQR</span>
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 rounded-lg hover:bg-gray-100 transition"
+        >
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
 
-        {/* Navigation */}
-        <nav className={`flex-1 ${effectiveCollapsed ? 'p-3' : 'p-4'} overflow-y-auto overflow-x-hidden`}>
-          {GROUPS.map((group, gi) => {
-            const items = NAV_ITEMS.filter((n) => n.group === group);
-            return (
-              <motion.div
-                key={group}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.12 + gi * 0.06, duration: 0.3 }}
-                className="mb-6"
-              >
-                <AnimatePresence initial={false}>
-                  {!effectiveCollapsed && (
-                    <motion.div
-                      key={`label-${group}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="text-[9px] font-bold tracking-wider uppercase text-gray-400 px-3 mb-2 whitespace-nowrap"
-                    >
-                      {GROUP_LABELS[group]}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            />
+            {/* Sidebar */}
+            <motion.div
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 bottom-0 w-64 bg-white z-50 shadow-xl md:hidden flex flex-col"
+            >
+              {/* Sidebar Header */}
+              <div className="p-5 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">QR</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">ProfileQR</div>
+                    <div className="text-[9px] text-gray-400">Digital Business Card</div>
+                  </div>
+                </div>
+              </div>
 
-                {items.map((item) => {
+              {/* Navigation */}
+              <nav className="flex-1 p-3">
+                {navItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive = activeSection === item.to;
+                  const isActive = activeSection === item.id;
                   return (
-                    <div key={item.to}>
-                      <motion.div
-                        whileHover={{ x: effectiveCollapsed ? 0 : 4 }}
-                        transition={SPRING_NAV}
-                        onClick={() => setActiveSection(item.to)}
-                        className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'justify-start'} gap-2 p-2 rounded-lg mb-1 cursor-pointer transition-all duration-200 ${
-                          isActive
-                            ? 'bg-gray-100 text-black border border-gray-200'
-                            : 'text-gray-500 hover:bg-gray-50'
-                        }`}
-                        style={{ position: 'relative' }}
-                        {...(effectiveCollapsed && { "data-tooltip": item.label })}
-                      >
-                        {isActive && !effectiveCollapsed && (
-                          <motion.div
-                            layoutId="nav-active-bar"
-                            transition={SPRING_NAV}
-                            className="absolute left-0 w-0.5 h-8 rounded-full bg-black"
-                          />
-                        )}
-                        <Icon size={effectiveCollapsed ? 18 : 16} strokeWidth={isActive ? 2.2 : 1.75} className="flex-shrink-0" />
-                        <AnimatePresence initial={false}>
-                          {!effectiveCollapsed && (
-                            <motion.span
-                              key={`label-${item.to}`}
-                              initial={{ opacity: 0, x: -4 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -4 }}
-                              transition={{ duration: 0.15 }}
-                              className={`text-xs whitespace-nowrap ${isActive ? 'font-semibold' : 'font-normal'}`}
-                            >
-                              {item.label}
-                            </motion.span>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    </div>
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveSection(item.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg mb-1 transition-all ${
+                        isActive
+                          ? 'bg-gray-100 text-black'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon size={18} />
+                      <span className="text-sm font-medium">{item.label}</span>
+                    </button>
                   );
                 })}
-              </motion.div>
+              </nav>
+
+              {/* User Info & Logout */}
+              <div className="p-4 border-t border-gray-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <img
+                    src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}`}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {user?.displayName?.split(' ')[0] || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                >
+                  <LogOut size={14} />
+                  Sign Out
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex w-64 bg-white border-r border-gray-200 fixed left-0 top-0 bottom-0 flex-col">
+        <div className="p-5 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+              <span className="text-white font-bold text-lg">QR</span>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-gray-900">ProfileQR</div>
+              <div className="text-[9px] text-gray-400">Digital Business Card</div>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 p-3">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg mb-1 transition-all ${
+                  isActive
+                    ? 'bg-gray-100 text-black'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Icon size={18} />
+                <span className="text-sm font-medium">{item.label}</span>
+              </button>
             );
           })}
         </nav>
 
-        {/* Footer / User Info */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35, duration: 0.3 }}
-          className={`${effectiveCollapsed ? 'p-2' : 'p-4'} border-t border-gray-200`}
-        >
-          <div
-            onClick={!effectiveCollapsed ? handleLogout : undefined}
-            className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'justify-start'} gap-2 p-2 rounded-lg cursor-pointer hover:bg-gray-50 transition group`}
-            {...(effectiveCollapsed && { "data-tooltip": "Logout" })}
-          >
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center gap-3 mb-3">
             <img
               src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}`}
               alt="Profile"
-              className="w-8 h-8 rounded-full object-cover"
+              className="w-10 h-10 rounded-full object-cover"
             />
-            <AnimatePresence initial={false}>
-              {!effectiveCollapsed && (
-                <motion.div
-                  key="user-info"
-                  initial={{ opacity: 0, x: -4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="flex-1 min-w-0"
-                >
-                  <p className="text-xs font-semibold text-gray-900 truncate">{user?.displayName?.split(' ')[0] || 'User'}</p>
-                  <p className="text-[10px] text-gray-400 truncate">{user?.email}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            {!effectiveCollapsed && (
-              <LogOut size={14} className="text-gray-400 opacity-0 group-hover:opacity-100 transition" />
-            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {user?.displayName?.split(' ')[0] || 'User'}
+              </p>
+              <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+            </div>
           </div>
-        </motion.div>
-
-        {/* Collapse Toggle Button */}
-        {!isMobile && (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            onClick={toggleCollapse}
-            className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center cursor-pointer text-gray-500 shadow-sm hover:shadow-md transition z-10"
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
           >
-            <motion.span
-              key={isCollapsed ? "right" : "left"}
-              initial={{ opacity: 0, rotate: -45 }}
-              animate={{ opacity: 1, rotate: 0 }}
-              exit={{ opacity: 0, rotate: 45 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center"
-            >
-              {isCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-            </motion.span>
-          </motion.button>
-        )}
-      </motion.aside>
-
-      {/* Content Area */}
-      <div className="flex-1 p-8 overflow-y-auto">
-        {activeSection === 'dashboard' && (
-          <div>
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold">Dashboard</h1>
-              <p className="text-gray-500 mt-1">Welcome back, {user?.displayName?.split(' ')[0] || 'User'} 👋</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm flex justify-between items-center gap-5">
-              <div className="flex gap-4 items-center">
-                <img 
-                  src={user?.photoURL || "https://i.pravatar.cc/300"} 
-                  alt="Profile"
-                  className="w-20 h-20 rounded-full object-cover"
-                />
-                <div>
-                  <h2 className="text-xl font-bold">{user?.displayName || 'User'}</h2>
-                  <p className="text-gray-500">{user?.email || 'No email'}</p>
-                </div>
-              </div>
-              <div className="w-24 h-24 rounded-xl bg-[repeating-linear-gradient(45deg,#000,#000_10px,#fff_10px,#fff_20px)]"></div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
-              <div onClick={() => setActiveSection('qr')} className="bg-white p-5 rounded-2xl shadow-sm cursor-pointer hover:-translate-y-1 transition">
-                <h3 className="font-bold mb-2">View QR</h3>
-                <p className="text-gray-500 text-sm">Open your QR instantly</p>
-              </div>
-              <div onClick={() => setActiveSection('profile')} className="bg-white p-5 rounded-2xl shadow-sm cursor-pointer hover:-translate-y-1 transition">
-                <h3 className="font-bold mb-2">Edit Profile</h3>
-                <p className="text-gray-500 text-sm">Update your info</p>
-              </div>
-              <div onClick={() => setActiveSection('themes')} className="bg-white p-5 rounded-2xl shadow-sm cursor-pointer hover:-translate-y-1 transition">
-                <h3 className="font-bold mb-2">Themes</h3>
-                <p className="text-gray-500 text-sm">Customize your card</p>
-              </div>
-              <div onClick={() => setActiveSection('settings')} className="bg-white p-5 rounded-2xl shadow-sm cursor-pointer hover:-translate-y-1 transition">
-                <h3 className="font-bold mb-2">Settings</h3>
-                <p className="text-gray-500 text-sm">Manage your account</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'qr' && <ViewQr />}
-        {activeSection === 'profile' && <UpdateProfile />}
-        {activeSection === 'themes' && <SelectLayout />}
-        {activeSection === 'settings' && <SettingsPage />}
+            <LogOut size={14} />
+            Sign Out
+          </button>
+        </div>
       </div>
 
-      {/* Tooltip CSS */}
-      <style>{`
-        [data-tooltip] { position: relative; }
-        [data-tooltip]:hover::after {
-          content: attr(data-tooltip);
-          position: absolute;
-          left: 100%;
-          top: 50%;
-          transform: translateY(-50%);
-          margin-left: 12px;
-          padding: 6px 10px;
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: 500;
-          color: #111;
-          white-space: nowrap;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          z-index: 1000;
-          pointer-events: none;
-        }
-        [data-tooltip]:hover::before {
-          content: '';
-          position: absolute;
-          left: 100%;
-          top: 50%;
-          transform: translateY(-50%);
-          margin-left: 6px;
-          border-width: 6px;
-          border-style: solid;
-          border-color: transparent #e5e7eb transparent transparent;
-          z-index: 1000;
-          pointer-events: none;
-        }
-      `}</style>
+      {/* Main Content */}
+      <div className="md:ml-64 pt-14 md:pt-0">
+        <div className="p-4 md:p-8">
+          {activeSection === 'dashboard' && (
+            <div>
+              <div className="mb-6">
+                <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
+                <p className="text-gray-500 mt-1">Welcome back, {user?.displayName?.split(' ')[0] || 'User'} 👋</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5">
+                <div className="flex gap-4 items-center">
+                  <img 
+                    src={user?.photoURL || "https://i.pravatar.cc/300"} 
+                    alt="Profile"
+                    className="w-20 h-20 rounded-full object-cover"
+                  />
+                  <div>
+                    <h2 className="text-xl font-bold">{user?.displayName || 'User'}</h2>
+                    <p className="text-gray-500 text-sm">{user?.email || 'No email'}</p>
+                  </div>
+                </div>
+                <div className="w-24 h-24 rounded-xl bg-[repeating-linear-gradient(45deg,#000,#000_10px,#fff_10px,#fff_20px)]"></div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+                <div onClick={() => setActiveSection('qr')} className="bg-white p-5 rounded-2xl shadow-sm cursor-pointer hover:-translate-y-1 transition">
+                  <h3 className="font-bold mb-2">View QR</h3>
+                  <p className="text-gray-500 text-sm">Open your QR instantly</p>
+                </div>
+                <div onClick={() => setActiveSection('profile')} className="bg-white p-5 rounded-2xl shadow-sm cursor-pointer hover:-translate-y-1 transition">
+                  <h3 className="font-bold mb-2">Edit Profile</h3>
+                  <p className="text-gray-500 text-sm">Update your info</p>
+                </div>
+                <div onClick={() => setActiveSection('themes')} className="bg-white p-5 rounded-2xl shadow-sm cursor-pointer hover:-translate-y-1 transition">
+                  <h3 className="font-bold mb-2">Themes</h3>
+                  <p className="text-gray-500 text-sm">Customize your card</p>
+                </div>
+                <div onClick={() => setActiveSection('settings')} className="bg-white p-5 rounded-2xl shadow-sm cursor-pointer hover:-translate-y-1 transition">
+                  <h3 className="font-bold mb-2">Settings</h3>
+                  <p className="text-gray-500 text-sm">Manage your account</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'qr' && <ViewQr />}
+          {activeSection === 'profile' && <UpdateProfile />}
+          {activeSection === 'themes' && <SelectLayout />}
+          {activeSection === 'settings' && <SettingsPage />}
+        </div>
+      </div>
     </div>
   );
 }
