@@ -1195,7 +1195,7 @@ const Layout9 = () => (
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-l from-purple-500/5 to-transparent rounded-full blur-3xl"></div>
 
       <div className="relative max-w-7xl mx-auto">
-        <header className="mb-10">
+        {/* <header className="mb-10">
           <div className="flex justify-between items-center p-6 bg-white border border-gray-200 rounded-2xl shadow-sm">
             <button
               onClick={() => navigate('/')}
@@ -1211,7 +1211,7 @@ const Layout9 = () => (
               </div>
             </button>
           </div>
-        </header>
+        </header> */}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
           {layouts.map((layout) => (
