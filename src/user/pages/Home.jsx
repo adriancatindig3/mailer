@@ -75,10 +75,19 @@ function Home() {
 
   const toggleCollapse = () => setIsCollapsed((prev) => !prev);
 
-  const handleLogout = async () => {
+  // const handleLogout = async () => {
+  //   await auth.signOut();
+  //   navigate('/login');
+  // };
+  // In Home.jsx, update the handleLogout function
+const handleLogout = async () => {
+  try {
     await auth.signOut();
-    navigate('/login');
-  };
+    navigate('/login', { replace: true });
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+};
 
   if (loading) {
     return (

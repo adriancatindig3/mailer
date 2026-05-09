@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, Mail, User, Trash2, LogOut, Shield } from 'lucide-react';
+import { Bell, User, Trash2, LogOut, Shield } from 'lucide-react';
 
 function Settings() {
   const navigate = useNavigate();
@@ -17,7 +17,11 @@ function Settings() {
     setLoading(true);
     try {
       await signOut(auth);
-      navigate('/login');
+      // Clear any stored auth data
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+      // Redirect to login
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -119,26 +123,6 @@ function Settings() {
               <Trash2 size={16} />
               Delete Account
             </button>
-          </div>
-        </div>
-
-        {/* Security */}
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-gray-50">
-            <div className="flex items-center gap-2">
-              <Shield size={18} className="text-gray-400" />
-              <h2 className="font-semibold text-gray-900">Security</h2>
-            </div>
-          </div>
-          
-          <div className="p-5">
-            <button className="w-full flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <span className="text-sm font-medium text-gray-700">Change Password</span>
-              <span className="text-xs text-gray-400">→</span>
-            </button>
-            <p className="text-xs text-gray-400 mt-3 text-center">
-              Last login: {new Date().toLocaleDateString()}
-            </p>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 function Login() {
   const [loading, setLoading] = useState(false);
@@ -30,20 +31,36 @@ function Login() {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <div className="bg-white p-10 rounded-2xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-2 text-center">Welcome Back</h1>
-        <p className="text-gray-500 mb-8 text-center">Sign in to continue</p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-md p-8"
+      >
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center shadow-sm">
+            <span className="text-white font-bold text-2xl">QR</span>
+          </div>
+        </div>
+
+        <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">Welcome back</h1>
+        <p className="text-gray-500 text-sm text-center mb-8">Sign in to access your digital business card</p>
         
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-5 text-sm">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl mb-6 text-sm"
+          >
             {error}
-          </div>
+          </motion.div>
         )}
         
         <button
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 p-3 rounded-lg font-semibold hover:bg-gray-50 transition disabled:opacity-70"
+          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -63,9 +80,34 @@ function Login() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          {loading ? 'Signing in...' : 'Continue with Google'}
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
+              <span>Signing in...</span>
+            </div>
+          ) : (
+            'Continue with Google'
+          )}
         </button>
-      </div>
+
+        {/* Divider */}
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-100"></div>
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-3 text-gray-400">Secure login</span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-gray-400">
+          By continuing, you agree to our{' '}
+          <a href="#" className="text-gray-900 hover:underline">Terms</a>
+          {' '}and{' '}
+          <a href="#" className="text-gray-900 hover:underline">Privacy Policy</a>
+        </p>
+      </motion.div>
     </div>
   );
 }
