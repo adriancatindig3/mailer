@@ -1,5 +1,0 @@
-# Handle Firebase Auth redirects
-/* /index.html 200
-
-# Firebase Auth redirect paths
-/__/auth/* /index.html 200
