@@ -1,4 +1,4 @@
-// src/user/pages/Login.jsx
+// src/user/pages/Login.jsx - RESPECTS STATUS
 
 import { useState, useEffect } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -16,6 +16,16 @@ function Login() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const navigate = useNavigate();
 
+  // Handle deleted account cleanup
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('deleted') === 'true') {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.history.replaceState({}, document.title, '/login');
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -25,24 +35,26 @@ function Login() {
 
           if (userDoc.exists()) {
             const status = userDoc.data()?.accountStatus;
+            // RESPECT STATUS: approved goes to home, anything else goes to pending
             if (status === 'approved') {
               navigate('/home', { replace: true });
             } else {
-              // pending or any other status → pending page
               navigate('/pending', { replace: true });
             }
             return;
           } else {
             // Auth exists but no Firestore doc (e.g. after account deletion)
-            // Don't sign out — just show the login page so they can re-register
+            // Stay on login page so they can register again
             setCheckingAuth(false);
           }
         } catch (err) {
           console.error('Auth check error:', err);
           await signOut(auth);
+          setCheckingAuth(false);
         }
+      } else {
+        setCheckingAuth(false);
       }
-      setCheckingAuth(false);
     });
 
     return () => unsubscribe();
@@ -72,7 +84,7 @@ function Login() {
           skills: '',
           socialLinks: {},
           isActive: true,
-          accountStatus: 'pending',
+          accountStatus: 'pending', // New users start as pending
           accountType: 'user',
           selectedLayout: 1,
           coverPhotoURL: '',
@@ -87,7 +99,7 @@ function Login() {
           isActive: true,
         });
         const status = userDoc.data()?.accountStatus;
-        return { success: true, status };
+        return { success: true, status: status || 'pending' };
       }
     } catch (error) {
       console.error('Error saving user to Firestore:', error);
@@ -121,7 +133,7 @@ function Login() {
         return;
       }
 
-      // Route based on account status
+      // RESPECT STATUS: Route based on account status
       if (saveResult.status === 'approved') {
         navigate('/home', { replace: true });
       } else {
