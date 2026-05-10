@@ -1,0 +1,11 @@
+# netlify.toml
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    Cross-Origin-Embedder-Policy = "credentialless"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
