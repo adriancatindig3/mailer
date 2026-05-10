@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "build": "vite build && xcopy public\\_headers dist\\ /Y && xcopy public\\_redirects dist\\ /Y",
-  "lint": "eslint .",
-  "preview": "vite preview"
-},
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+    
+  },
   "dependencies": {
     "@cloudinary/url-gen": "^1.22.0",
     "firebase": "^12.13.0",
