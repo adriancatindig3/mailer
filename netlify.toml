@@ -1,4 +1,6 @@
-# netlify.toml
+[build]
+  publish = "dist"
+
 [[headers]]
   for = "/*"
   [headers.values]
