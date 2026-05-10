@@ -1,11 +1,11 @@
-// src/user/pages/Login.jsx
+// src/user/pages/Login.jsx - Shows pending UI for all pending attempts
 
 import { useState, useEffect } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../config/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 function Login() {
   const [loading, setLoading] = useState(false);
@@ -14,32 +14,43 @@ function Login() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const [pendingInfo, setPendingInfo] = useState(null); // { email, displayName }
+  const [pendingInfo, setPendingInfo] = useState(null); // Add this back
   const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // User is signed in — check their Firestore status
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
 
           if (userDoc.exists()) {
-            const status = (userDoc.data().accountStatus || '').toLowerCase();
+            const data = userDoc.data();
+            const status = (data.accountStatus || '').toLowerCase();
+            
             if (status === 'approved') {
               navigate('/home', { replace: true });
               return;
+            } else if (status === 'pending') {
+              // Show pending UI instead of error
+              setPendingInfo({ 
+                email: data.email || user.email, 
+                displayName: data.displayName || user.displayName 
+              });
+              await signOut(auth);
+              return;
             }
           }
-          // Not approved — sign them out and stay on login
+          
           await signOut(auth);
         } catch (err) {
+          console.error('Auth check error:', err);
           await signOut(auth);
         }
       }
       setCheckingAuth(false);
     });
+    
     return () => unsubscribe();
   }, [navigate]);
 
@@ -58,13 +69,13 @@ function Login() {
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-
-      // Check / create Firestore record
+      
+      // Check if user exists in Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
-        // Brand new user — save as Pending
+        // NEW USER - Create pending account
         await setDoc(userDocRef, {
           uid: user.uid,
           displayName: user.displayName || '',
@@ -86,39 +97,44 @@ function Login() {
           agreedToTerms: true,
           agreedToTermsAt: new Date().toISOString(),
         });
-
-        // Sign out immediately — they need approval first
+        
+        // Show pending UI
+        setPendingInfo({ 
+          email: user.email, 
+          displayName: user.displayName 
+        });
+        
+        // Sign out
         await signOut(auth);
-        setPendingInfo({ email: user.email, displayName: user.displayName });
-        return;
+      } else {
+        // EXISTING USER - Check status
+        const userData = userDoc.data();
+        const status = (userData.accountStatus || '').toLowerCase();
+        
+        if (status === 'approved') {
+          // Update last login and navigate to home
+          await updateDoc(userDocRef, { lastLoginAt: new Date().toISOString() });
+          navigate('/home', { replace: true });
+        } else {
+          // Pending - show pending UI
+          setPendingInfo({ 
+            email: userData.email || user.email, 
+            displayName: userData.displayName || user.displayName 
+          });
+          await signOut(auth);
+        }
       }
-
-      // Existing user — read status
-      const data = userDoc.data();
-      const status = (data.accountStatus || '').toLowerCase();
-
-      if (status === 'approved') {
-        // Update last login and go in
-        await updateDoc(userDocRef, { lastLoginAt: new Date().toISOString() });
-        navigate('/home', { replace: true });
-        return;
-      }
-
-      if (status === 'rejected') {
-        await signOut(auth);
-        setError('❌ Your account has been rejected. Please contact the administrator for assistance.');
-        return;
-      }
-
-      // Pending or anything else — block and show pending UI
-      await signOut(auth);
-      setPendingInfo({ email: user.email, displayName: user.displayName });
-
+      
     } catch (err) {
+      console.error('Login error:', err);
+      // Ignore popup closed by user errors
       if (
         err.code === 'auth/popup-closed-by-user' ||
         err.code === 'auth/cancelled-popup-request'
-      ) return;
+      ) {
+        setLoading(false);
+        return;
+      }
       setError(err.message || 'Failed to sign in with Google.');
     } finally {
       setLoading(false);
@@ -133,7 +149,7 @@ function Login() {
     );
   }
 
-  // ── Pending block screen ────────────────────────────────────────────────────
+  // Show pending UI for pending accounts
   if (pendingInfo) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50 px-4">
@@ -143,7 +159,6 @@ function Login() {
           transition={{ duration: 0.5 }}
           className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-md p-8 text-center"
         >
-          {/* Spinning clock */}
           <div className="flex justify-center mb-6">
             <div className="relative w-20 h-20">
               <motion.div
@@ -165,8 +180,6 @@ function Login() {
             The administrator will approve your registration shortly.
           </p>
 
-
-
           <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
             <p className="text-xs text-gray-500 leading-relaxed">
               📧 <span className="font-medium text-gray-700">{pendingInfo.email}</span>
@@ -176,7 +189,7 @@ function Login() {
           </div>
 
           <button
-            onClick={() => setPendingInfo(null)}
+            onClick={() => window.location.reload()}
             className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition"
           >
             Back to Login
@@ -186,9 +199,7 @@ function Login() {
     );
   }
 
-  // ── Normal login screen ─────────────────────────────────────────────────────
-  const errorIsWarning = error.includes('pending') || error.includes('submitted');
-
+  // Normal login screen
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50 px-4">
       <motion.div
@@ -210,11 +221,7 @@ function Login() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`p-3 rounded-xl mb-6 text-sm ${
-              errorIsWarning
-                ? 'bg-yellow-50 border border-yellow-200 text-yellow-700'
-                : 'bg-red-50 border border-red-100 text-red-600'
-            }`}
+            className="p-3 rounded-xl mb-6 text-sm bg-red-50 border border-red-100 text-red-600"
           >
             {error}
           </motion.div>
