@@ -359,3 +359,5 @@ const handleDeleteAccount = async () => {
 }
 
 export default Settings;
+
+//current

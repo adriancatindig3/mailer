@@ -179,9 +179,9 @@ function App() {
 
         {/* Pending — only for authenticated but not-yet-approved users */}
         <Route path="/pending" element={
-          <PendingRoute>
+          <ProtectedRoute>
             <Pending />
-          </PendingRoute>
+          </ProtectedRoute>
         } />
 
         {/* Protected — only for approved users */}
