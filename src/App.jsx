@@ -14,6 +14,64 @@ import Pending from './user/pages/Pending';
 import Rejected from './user/pages/Rejected';
 import Deleted from './user/pages/Deleted';
 import AdminDashboard from './admin/AdminDashboard';
+import PublicProfile from './user/pages/PublicProfile';
+
+// AdminRoute - ONLY logged-in users with accountType 'admin' can access
+const AdminRoute = ({ children }) => {
+  const [isAdmin, setIsAdmin] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
+      
+      // First check: Is user logged in?
+      if (!user) {
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+      
+      // Second check: Does user have admin role?
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          const accountType = userDoc.data()?.accountType;
+          if (accountType === 'admin') {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Not logged in -> redirect to login
+  if (!isAdmin && !auth.currentUser) return <Navigate to="/login" replace />;
+  
+  // Logged in but not admin -> redirect to home
+  if (!isAdmin) return <Navigate to="/home" replace />;
+  
+  return children;
+};
 
 // Protected route that checks if user is approved
 const ProtectedRoute = ({ children }) => {
@@ -28,6 +86,14 @@ const ProtectedRoute = ({ children }) => {
           
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
+            const accountType = userDoc.data()?.accountType;
+            
+            // Admin users bypass status checks
+            if (accountType === 'admin') {
+              setStatus('approved');
+              return;
+            }
+            
             if (accountStatus === 'approved') {
               setStatus('approved');
             } else if (accountStatus === 'rejected') {
@@ -104,6 +170,13 @@ const PendingRoute = () => {
           
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
+            const accountType = userDoc.data()?.accountType;
+            
+            if (accountType === 'admin') {
+              setStatus('approved');
+              return;
+            }
+            
             if (accountStatus === 'approved') {
               setStatus('approved');
             } else if (accountStatus === 'rejected') {
@@ -156,6 +229,13 @@ const RejectedRoute = () => {
           
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
+            const accountType = userDoc.data()?.accountType;
+            
+            if (accountType === 'admin') {
+              setStatus('approved');
+              return;
+            }
+            
             if (accountStatus === 'rejected') {
               setStatus('rejected');
             } else if (accountStatus === 'approved') {
@@ -208,6 +288,13 @@ const DeletedRoute = () => {
           
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
+            const accountType = userDoc.data()?.accountType;
+            
+            if (accountType === 'admin') {
+              setStatus('approved');
+              return;
+            }
+            
             if (accountStatus === 'deleted') {
               setStatus('deleted');
             } else if (accountStatus === 'approved') {
@@ -225,7 +312,6 @@ const DeletedRoute = () => {
           setStatus('unauthenticated');
         }
       } else {
-        // Check URL param for deleted flag
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('deleted') === 'true') {
           setStatus('deleted');
@@ -257,16 +343,25 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* PUBLIC ROUTES - No authentication required */}
+        <Route path="/profile/:userId" element={<PublicProfile />} />
+        
+        {/* AUTH ROUTES */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/pending" element={<PendingRoute />} />
         <Route path="/rejected" element={<RejectedRoute />} />
         <Route path="/deleted" element={<DeletedRoute />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        
+        {/* ADMIN ONLY ROUTE - Protected */}
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        
+        {/* USER ROUTES */}
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/updateprofile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />
         <Route path="/viewqr" element={<ProtectedRoute><ViewQr /></ProtectedRoute>} />
         <Route path="/selectlayout" element={<ProtectedRoute><SelectLayout /></ProtectedRoute>} />
+        
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
