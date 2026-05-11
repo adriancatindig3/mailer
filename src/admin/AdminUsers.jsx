@@ -85,24 +85,16 @@ const AdminUsers = ({ users, loading, darkMode, T, onRefresh, currentUser, dynam
     else if (actionType === 'delete') handleDeleteUser(selectedUser.id);
   };
 
-//   const filteredUsers = users.filter(u => {
-//     const matchSearch = !searchTerm ||
-//       u.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//       u.email.toLowerCase().includes(searchTerm.toLowerCase());
-//     const matchRole = filterRole === 'all' || u.occupation?.toLowerCase().replace(/\s+/g, '-') === filterRole;
-//     const matchStatus = filterStatus === 'all' || u.accountStatus === filterStatus;
-//     return matchSearch && matchRole && matchStatus;
-//   });
-
-const filteredUsers = users.filter(u => {
-  if (u.role === 'admin') return false; // ← add this
-  const matchSearch = !searchTerm ||
-    u.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase());
-  const matchRole = filterRole === 'all' || u.occupation?.toLowerCase().replace(/\s+/g, '-') === filterRole;
-  const matchStatus = filterStatus === 'all' || u.accountStatus === filterStatus;
-  return matchSearch && matchRole && matchStatus;
-});
+  const filteredUsers = users.filter(u => {
+    if (u.role === 'admin') return false;
+    const matchSearch = !searchTerm ||
+      u.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchRole = filterRole === 'all' || u.occupation?.toLowerCase().replace(/\s+/g, '-') === filterRole;
+    const matchStatus = filterStatus === 'all' || u.accountStatus === filterStatus;
+    return matchSearch && matchRole && matchStatus;
+  });
+  
   // ── Styles ──
   const card = {
     background: dm ? '#1f2937' : '#ffffff',
@@ -195,7 +187,6 @@ const filteredUsers = users.filter(u => {
           {/* Name + role */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {/* ── FIXED: truncate long display names on mobile ── */}
               <span style={{
                 fontSize: '0.875rem', fontWeight: 700, color: dm ? '#f1f5f9' : '#0f172a',
                 maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis',
@@ -255,7 +246,7 @@ const filteredUsers = users.filter(u => {
               )}
             </div>
 
-            {/* Action buttons — always one row */}
+            {/* Action buttons - FIXED: Removed approve button for rejected users */}
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {isPending && (
                 <>
@@ -275,12 +266,7 @@ const filteredUsers = users.filter(u => {
                   <Trash2 size={12} /> Delete
                 </button>
               )}
-              {u.accountStatus === 'rejected' && (
-                <button style={{ ...approveBtn, flex: 1, justifyContent: 'center' }}
-                  onClick={() => openConfirmModal(u, 'approve')} disabled={actionLoading === u.id}>
-                  <CheckCircle2 size={12} /> Approve
-                </button>
-              )}
+              {/* Removed the approve button for rejected users */}
             </div>
           </div>
         )}
@@ -391,7 +377,6 @@ const filteredUsers = users.filter(u => {
                               : <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'white' }}>{getInitials(u.displayName)}</span>}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            {/* ── FIXED: truncate long display names on desktop ── */}
                             <div style={{
                               fontSize: '0.82rem', fontWeight: 700, color: dm ? '#f1f5f9' : '#0f172a',
                               maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -435,7 +420,7 @@ const filteredUsers = users.filter(u => {
                         <span style={{ fontSize: '0.72rem', color: dm ? '#475569' : '#94a3b8', fontFamily: 'monospace' }}>{formatDate(u.createdAt)}</span>
                       </td>
 
-                      {/* Actions — always one row */}
+                      {/* Actions - FIXED: Removed approve button for rejected users */}
                       <td style={tdStyle}>
                         <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'nowrap' }}>
                           {isPending && (
@@ -471,17 +456,8 @@ const filteredUsers = users.filter(u => {
                               <Trash2 size={11} /> Delete
                             </button>
                           )}
-                          {u.accountStatus === 'rejected' && (
-                            <button
-                              style={{ ...approveBtn, opacity: actionLoading === u.id ? 0.5 : 1 }}
-                              onClick={() => openConfirmModal(u, 'approve')}
-                              disabled={actionLoading === u.id}
-                              onMouseEnter={e => { if (actionLoading !== u.id) e.currentTarget.style.background = '#16a34a'; }}
-                              onMouseLeave={e => e.currentTarget.style.background = '#22c55e'}
-                            >
-                              <CheckCircle2 size={11} /> Approve
-                            </button>
-                          )}
+                          {/* Removed the approve button for rejected users */}
+                          
                           {actionLoading === u.id && (
                             <div style={{ width: 14, height: 14, border: `2px solid ${dm ? '#374151' : '#e2e8f0'}`, borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                           )}
