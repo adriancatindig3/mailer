@@ -85,15 +85,24 @@ const AdminUsers = ({ users, loading, darkMode, T, onRefresh, currentUser, dynam
     else if (actionType === 'delete') handleDeleteUser(selectedUser.id);
   };
 
-  const filteredUsers = users.filter(u => {
-    const matchSearch = !searchTerm ||
-      u.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchRole = filterRole === 'all' || u.occupation?.toLowerCase().replace(/\s+/g, '-') === filterRole;
-    const matchStatus = filterStatus === 'all' || u.accountStatus === filterStatus;
-    return matchSearch && matchRole && matchStatus;
-  });
+//   const filteredUsers = users.filter(u => {
+//     const matchSearch = !searchTerm ||
+//       u.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//       u.email.toLowerCase().includes(searchTerm.toLowerCase());
+//     const matchRole = filterRole === 'all' || u.occupation?.toLowerCase().replace(/\s+/g, '-') === filterRole;
+//     const matchStatus = filterStatus === 'all' || u.accountStatus === filterStatus;
+//     return matchSearch && matchRole && matchStatus;
+//   });
 
+const filteredUsers = users.filter(u => {
+  if (u.role === 'admin') return false; // ← add this
+  const matchSearch = !searchTerm ||
+    u.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const matchRole = filterRole === 'all' || u.occupation?.toLowerCase().replace(/\s+/g, '-') === filterRole;
+  const matchStatus = filterStatus === 'all' || u.accountStatus === filterStatus;
+  return matchSearch && matchRole && matchStatus;
+});
   // ── Styles ──
   const card = {
     background: dm ? '#1f2937' : '#ffffff',

@@ -73,7 +73,7 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// Protected route that checks if user is approved
+// Protected route that checks if user is approved and NOT admin
 const ProtectedRoute = ({ children }) => {
   const [status, setStatus] = useState('loading');
 
@@ -88,9 +88,9 @@ const ProtectedRoute = ({ children }) => {
             const accountStatus = userDoc.data()?.accountStatus;
             const accountType = userDoc.data()?.accountType;
             
-            // Admin users bypass status checks
+            // BLOCK ADMIN USERS - redirect them to admin dashboard
             if (accountType === 'admin') {
-              setStatus('approved');
+              setStatus('admin');
               return;
             }
             
@@ -126,6 +126,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
+  if (status === 'admin') return <Navigate to="/admin" replace />; // Redirect admin to admin dashboard
   if (status === 'pending') return <Navigate to="/pending" replace />;
   if (status === 'rejected') return <Navigate to="/rejected" replace />;
   if (status === 'deleted') return <Navigate to="/deleted" replace />;
@@ -138,8 +139,24 @@ const PublicRoute = ({ children }) => {
   const [status, setStatus] = useState('loading');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setStatus(user ? 'authenticated' : 'guest');
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Check if user is admin to redirect appropriately
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists() && userDoc.data()?.accountType === 'admin') {
+            setStatus('admin');
+          } else {
+            setStatus('authenticated');
+          }
+        } catch (error) {
+          setStatus('authenticated');
+        }
+      } else {
+        setStatus('guest');
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -153,6 +170,7 @@ const PublicRoute = ({ children }) => {
   }
 
   if (status === 'authenticated') return <Navigate to="/home" replace />;
+  if (status === 'admin') return <Navigate to="/admin" replace />;
 
   return children;
 };
@@ -173,7 +191,7 @@ const PendingRoute = () => {
             const accountType = userDoc.data()?.accountType;
             
             if (accountType === 'admin') {
-              setStatus('approved');
+              setStatus('admin');
               return;
             }
             
@@ -209,6 +227,7 @@ const PendingRoute = () => {
   }
 
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
+  if (status === 'admin') return <Navigate to="/admin" replace />;
   if (status === 'approved') return <Navigate to="/home" replace />;
   if (status === 'rejected') return <Navigate to="/rejected" replace />;
   if (status === 'deleted') return <Navigate to="/deleted" replace />;
@@ -232,7 +251,7 @@ const RejectedRoute = () => {
             const accountType = userDoc.data()?.accountType;
             
             if (accountType === 'admin') {
-              setStatus('approved');
+              setStatus('admin');
               return;
             }
             
@@ -268,6 +287,7 @@ const RejectedRoute = () => {
   }
 
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
+  if (status === 'admin') return <Navigate to="/admin" replace />;
   if (status === 'approved') return <Navigate to="/home" replace />;
   if (status === 'pending') return <Navigate to="/pending" replace />;
   if (status === 'deleted') return <Navigate to="/deleted" replace />;
@@ -291,7 +311,7 @@ const DeletedRoute = () => {
             const accountType = userDoc.data()?.accountType;
             
             if (accountType === 'admin') {
-              setStatus('approved');
+              setStatus('admin');
               return;
             }
             
@@ -331,6 +351,7 @@ const DeletedRoute = () => {
     );
   }
 
+  if (status === 'admin') return <Navigate to="/admin" replace />;
   if (status === 'approved') return <Navigate to="/home" replace />;
   if (status === 'pending') return <Navigate to="/pending" replace />;
   if (status === 'rejected') return <Navigate to="/rejected" replace />;
@@ -355,7 +376,7 @@ function App() {
         {/* ADMIN ONLY ROUTE - Protected */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         
-        {/* USER ROUTES */}
+        {/* USER ROUTES - Now admin cannot access these */}
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/updateprofile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />

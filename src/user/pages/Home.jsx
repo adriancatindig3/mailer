@@ -115,8 +115,12 @@ function Home() {
       {/* Mobile Header with Hamburger on Right */}
       <div className={`md:hidden fixed top-0 left-0 right-0 ${mobileHeaderBgClass} px-4 py-3 flex items-center justify-between z-50`}>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">QR</span>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-transparent">
+            <img 
+              src="/e-CARD generic.png" 
+              alt="e-CARD" 
+              className={`w-full h-full object-contain transition-all duration-200 ${darkMode ? 'brightness-0 invert' : ''}`} 
+            />
           </div>
           <span className={`font-semibold ${mobileHeaderTextClass}`}>e-CARD</span>
         </div>
@@ -159,8 +163,12 @@ function Home() {
               {/* Sidebar Header */}
               <div className={`p-5 ${borderClass}`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">QR</span>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-transparent">
+                    <img 
+                      src="/e-CARD generic.png" 
+                      alt="e-CARD" 
+                      className={`w-full h-full object-contain transition-all duration-200 ${darkMode ? 'brightness-0 invert' : ''}`} 
+                    />
                   </div>
                   <div>
                     <div className={`text-sm font-bold ${sidebarTextClass}`}>e-CARD</div>
@@ -224,8 +232,12 @@ function Home() {
       <div className={`hidden md:flex w-64 ${sidebarBgClass} fixed left-0 top-0 bottom-0 flex-col`}>
         <div className={`p-5 ${borderClass}`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">QR</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-transparent">
+              <img 
+                src="/e-CARD generic.png" 
+                alt="e-CARD" 
+                className={`w-full h-full object-contain transition-all duration-200 ${darkMode ? 'brightness-0 invert' : ''}`} 
+              />
             </div>
             <div>
               <div className={`text-sm font-bold ${sidebarTextClass}`}>e-CARD</div>

@@ -10,10 +10,6 @@ import {
   FaTimes
 } from 'react-icons/fa';
 
-const FALLBACK_LOGO = '/CCC.png';
-
-
-
 const FloatingConnectForm = ({
   showConnectForm, setShowConnectForm,
   userData,
@@ -37,15 +33,11 @@ const FloatingConnectForm = ({
 
   const handlePhoneChange = (e) => {
     let value = e.target.value;
-    // Remove any non-digit characters
     let digits = value.replace(/\D/g, '');
-    // Limit to 10 digits
     if (digits.length > 10) {
       digits = digits.slice(0, 10);
     }
-    // Store just the digits (without +63 prefix)
     setConnectPhone(digits);
-    // Validate
     if (digits.length > 0 && digits.length !== 10) {
       setPhoneError('Phone number must be exactly 10 digits');
     } else {
@@ -71,7 +63,6 @@ const FloatingConnectForm = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl animate-slideUp overflow-hidden">
-        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100">
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -224,17 +215,12 @@ const FloatingConnectForm = ({
   );
 };
 
-
-
-
-
-
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 const PublicProfile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [schoolLogo, setSchoolLogo] = useState('/CCC.png'); // Add state for school logo
   const { userId } = useParams();
   const navigate = useNavigate();
 
@@ -247,6 +233,21 @@ const PublicProfile = () => {
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendError, setSendError] = useState('');
+
+  // Fetch school logo from Firestore
+  useEffect(() => {
+    const fetchSchoolLogo = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, 'settings', 'school'));
+        if (settingsDoc.exists() && settingsDoc.data().logoURL) {
+          setSchoolLogo(settingsDoc.data().logoURL);
+        }
+      } catch (error) {
+        console.error('Error fetching school logo:', error);
+      }
+    };
+    fetchSchoolLogo();
+  }, []);
 
   useEffect(() => {
     const handleEscapeKey = e => {
@@ -377,8 +378,17 @@ const PublicProfile = () => {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  // Updated SchoolLogo component to use dynamic logo
   const SchoolLogo = ({ className = 'w-3 h-3', style = {} }) => (
-    <img src="/CCC.png" alt="School logo" className={`object-contain ${className}`} style={style} />
+    <img 
+      src={schoolLogo} 
+      alt="School logo" 
+      className={`object-contain ${className}`} 
+      style={style}
+      onError={(e) => {
+        e.target.src = '/CCC.png';
+      }}
+    />
   );
 
   // ─── Universal Connect Button ───────────────────────────────────────────────
@@ -517,8 +527,6 @@ const PublicProfile = () => {
     </div>
   );
 
-  // Layouts 5-9 would continue here with the same structure...
-  // (I'll add them in the next message due to length)
   // ═══════════════════════════════════════════════════════════════════════════
   // LAYOUT 5 - Deep Slate Blue with Cover (from SelectLayout)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -586,17 +594,18 @@ const PublicProfile = () => {
         <div className="w-full mt-4 space-y-2">
           {userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaPhone /></div><div className="flex-1"><div className="text-xs font-medium">Call me</div><div className="text-[11px] opacity-60">{userData.phoneNumber}</div></div><span className="text-xs opacity-40">↗</span></a>}
           {userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaEnvelope /></div><div className="flex-1"><div className="text-xs font-medium">Email me</div><div className="text-[11px] opacity-60">{userData.email}</div></div><span className="text-xs opacity-40">↗</span></a>}
-{userData?.location && (
-  <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}>
-    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
-      <FaMapMarkerAlt />
-    </div>
-    <div className="flex-1">
-      <div className="text-xs font-medium">View Location</div>
-    </div>
-    <span className="text-xs opacity-40">↗</span>
-  </a>
-)}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-60">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-40">↗</span></a>)}
+          {userData?.location && (
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
+                <FaMapMarkerAlt />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-medium">View Location</div>
+              </div>
+              <span className="text-xs opacity-40">↗</span>
+            </a>
+          )}
+          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-60">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-40">↗</span></a>)}
         </div>
       </div>
     </div>
@@ -617,17 +626,18 @@ const PublicProfile = () => {
         <div className="w-full mt-4 space-y-2">
           {userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}><FaPhone /></div><div className="flex-1"><div className="text-xs font-medium">Call me</div><div className="text-[11px] opacity-55">{userData.phoneNumber}</div></div><span className="text-xs opacity-35">↗</span></a>}
           {userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}><FaEnvelope /></div><div className="flex-1"><div className="text-xs font-medium">Email me</div><div className="text-[11px] opacity-55">{userData.email}</div></div><span className="text-xs opacity-35">↗</span></a>}
-{userData?.location && (
-  <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}>
-    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
-      <FaMapMarkerAlt />
-    </div>
-    <div className="flex-1">
-      <div className="text-xs font-medium">View Location</div>
-    </div>
-    <span className="text-xs opacity-35">↗</span>
-  </a>
-)}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-55">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-35">↗</span></a>)}
+          {userData?.location && (
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <FaMapMarkerAlt />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-medium">View Location</div>
+              </div>
+              <span className="text-xs opacity-35">↗</span>
+            </a>
+          )}
+          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-55">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-35">↗</span></a>)}
         </div>
       </div>
     </div>
@@ -648,34 +658,34 @@ const PublicProfile = () => {
         <div className="w-full mt-4 space-y-2">
           {userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-500"><FaPhone className="text-white text-xs" /></div><div className="flex-1"><div className="text-xs font-medium text-gray-900">Call me</div><div className="text-[11px] text-gray-500">{userData.phoneNumber}</div></div><span className="text-xs text-gray-400">↗</span></a>}
           {userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-500"><FaEnvelope className="text-white text-xs" /></div><div className="flex-1"><div className="text-xs font-medium text-gray-900">Email me</div><div className="text-[11px] text-gray-500">{userData.email}</div></div><span className="text-xs text-gray-400">↗</span></a>}
-{userData?.location && (
-  <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
-    <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-red-500">
-      <FaMapMarkerAlt className="text-white text-xs" />
-    </div>
-    <div className="flex-1">
-      <div className="text-xs font-medium text-gray-900">View Location</div>
-    </div>
-    <span className="text-xs text-gray-400">↗</span>
-  </a>
-)}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600"><span className="text-white text-xs">{getSocialIcon(p)}</span></div><div className="flex-1"><div className="text-xs font-medium text-gray-900 capitalize">Follow me</div><div className="text-[11px] text-gray-500">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs text-gray-400">↗</span></a>)}
+          {userData?.location && (
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-red-500">
+                <FaMapMarkerAlt className="text-white text-xs" />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-medium text-gray-900">View Location</div>
+              </div>
+              <span className="text-xs text-gray-400">↗</span>
+            </a>
+          )}
+          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600"><span className="text-white text-xs">{getSocialIcon(p)}</span></div><div className="flex-1"><div className="text-xs font-medium text-gray-900 capitalize">Follow me</div><div className="text-[11px] text-gray-500">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs text-gray-400">↗</span></a>)}
         </div>
       </div>
     </div>
   );
-  // Map layouts
-  // Map layouts (all 9)
-const layoutComponents = { 
-  1: Layout1, 
-  2: Layout2, 
-  3: Layout3, 
-  4: Layout4, 
-  5: Layout5, 
-  6: Layout6, 
-  7: Layout7, 
-  8: Layout8, 
-  9: Layout9 
-};
+
+  const layoutComponents = { 
+    1: Layout1, 
+    2: Layout2, 
+    3: Layout3, 
+    4: Layout4, 
+    5: Layout5, 
+    6: Layout6, 
+    7: Layout7, 
+    8: Layout8, 
+    9: Layout9 
+  };
 
   if (loading) {
     return (
@@ -735,8 +745,9 @@ const layoutComponents = {
         darkMode={userData.selectedLayout !== 3}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black p-4 flex items-center justify-center">
-        <div className="w-full max-w-md" style={{ height: '875px' }}>
+      {/* Removed the outer padding and made it full width with no gaps */}
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-full max-w-md">
           <SelectedLayout />
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTheme, TABS } from './adminHelpers';
 import AdminUsers from './AdminUsers';
@@ -44,6 +44,52 @@ const AdminDashboard = () => {
   useEffect(() => {
     localStorage.setItem('adminTheme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
+
+  // Get current logged-in user from Firebase Auth
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        try {
+          // Fetch additional user data from Firestore
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUser({
+              uid: currentUser.uid,
+              email: currentUser.email || userData.email,
+              displayName: userData.displayName || currentUser.displayName || 'Admin',
+              photoURL: userData.photoURL || currentUser.photoURL,
+              accountType: userData.accountType,
+              accountStatus: userData.accountStatus
+            });
+          } else {
+            setUser({
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName || 'Admin',
+              photoURL: currentUser.photoURL
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          setUser({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName || 'Admin',
+            photoURL: currentUser.photoURL
+          });
+        }
+      } else {
+        // No user logged in, redirect to login
+        navigate('/login');
+      }
+    };
+
+    getCurrentUser();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -140,21 +186,22 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    const init = async () => {
-      setUser({
-        email: 'admin@test.com',
-        displayName: 'Admin User',
-        uid: 'mock'
-      });
-
-      await fetchAllUsers();
-    };
-
-    init();
-  }, [dynamicRoles]);
+    if (user) {
+      fetchAllUsers();
+    }
+  }, [user, dynamicRoles]);
 
   const handleRefresh = async () => {
     await fetchAllUsers();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   // Theme-based classes matching user homepage
@@ -170,8 +217,11 @@ const AdminDashboard = () => {
   const mobileHeaderTextClass = darkMode ? 'text-white' : 'text-gray-900';
   const buttonBgClass = darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700';
   const themeToggleBgClass = darkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-white border-gray-200 hover:bg-gray-50';
+  const logoutButtonClass = darkMode 
+    ? 'w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg text-sm font-medium transition border border-red-800/50' 
+    : 'w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition border border-red-200';
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className={`flex justify-center items-center min-h-screen ${bgClass}`}>
         <div className="text-center">
@@ -189,8 +239,12 @@ const AdminDashboard = () => {
       {/* Mobile Header with Hamburger on Right */}
       <div className={`md:hidden fixed top-0 left-0 right-0 ${mobileHeaderBgClass} px-4 py-3 flex items-center justify-between z-50`}>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-            <img src={logo} className="w-5 h-5" alt="logo" />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-transparent">
+            <img 
+              src={logo} 
+              alt="e-CARD" 
+              className={`w-full h-full object-contain transition-all duration-200 ${darkMode ? 'brightness-0 invert' : ''}`} 
+            />
           </div>
           <span className={`font-semibold ${mobileHeaderTextClass}`}>e-CARD Admin</span>
         </div>
@@ -233,8 +287,12 @@ const AdminDashboard = () => {
               {/* Sidebar Header */}
               <div className={`p-5 ${borderClass}`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                    <img src={logo} className="w-6 h-6" alt="logo" />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-transparent">
+                    <img 
+                      src={logo} 
+                      alt="e-CARD" 
+                      className={`w-full h-full object-contain transition-all duration-200 ${darkMode ? 'brightness-0 invert' : ''}`} 
+                    />
                   </div>
                   <div>
                     <div className={`text-sm font-bold ${sidebarTextClass}`}>e-CARD Admin</div>
@@ -281,11 +339,8 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 <button
-                  onClick={async () => {
-                    await signOut(auth);
-                    navigate('/login');
-                  }}
-                  className={`w-full flex items-center justify-center gap-2 px-3 py-2 ${buttonBgClass} rounded-lg text-sm font-medium transition`}
+                  onClick={handleLogout}
+                  className={logoutButtonClass}
                 >
                   <LogOut size={14} />
                   Sign Out
@@ -301,8 +356,12 @@ const AdminDashboard = () => {
         {/* LOGO */}
         <div className={`p-5 ${borderClass}`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-              <img src={logo} className="w-6 h-6" alt="logo" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-transparent">
+              <img 
+                src={logo} 
+                alt="e-CARD" 
+                className={`w-full h-full object-contain transition-all duration-200 ${darkMode ? 'brightness-0 invert' : ''}`} 
+              />
             </div>
             <div>
               <div className={`text-sm font-bold ${sidebarTextClass}`}>e-CARD Admin</div>
@@ -346,11 +405,8 @@ const AdminDashboard = () => {
             </div>
           </div>
           <button
-            onClick={async () => {
-              await signOut(auth);
-              navigate('/login');
-            }}
-            className={`w-full flex items-center justify-center gap-2 px-3 py-2 ${buttonBgClass} rounded-lg text-sm font-medium transition`}
+            onClick={handleLogout}
+            className={logoutButtonClass}
           >
             <LogOut size={14} />
             Sign Out
@@ -375,11 +431,6 @@ const AdminDashboard = () => {
         </div>
 
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
-          {/* Page Title */}
-          {/* <div className="mb-6">
-            <h1 className={`text-xl md:text-2xl font-bold capitalize ${headerTextClass}`}>{activeTab}</h1>
-          </div> */}
-
           {/* CONTENT */}
           {activeTab === 'users' && (
             <AdminUsers
@@ -415,6 +466,6 @@ const AdminDashboard = () => {
       </div>
     </div>
   );
-};
+}; 
 
 export default AdminDashboard;
