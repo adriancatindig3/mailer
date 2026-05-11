@@ -463,11 +463,11 @@ const UpdateProfile = ({ darkMode }) => {
                 {userData.occupation ? `${userData.occupation} · ` : ''}{userData.company}
               </p>
             </div>
-            {userData.location && (
+            {/* {userData.location && (
               <div className={`flex items-center gap-1 text-xs ${textLightClass} mt-0.5`}>
                 <MapPin size={10} /> {userData.location}
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
@@ -549,7 +549,8 @@ const UpdateProfile = ({ darkMode }) => {
             </div>
             <input
               type="text" name="location" value={userData.location} onChange={handleInputChange}
-              placeholder="City, Country"
+              // placeholder="City, Country"
+               placeholder="Google Maps link (e.g., https://maps.app.goo.gl/...)"
               className={`w-full px-3 py-2.5 border ${inputBorderClass} rounded-lg text-sm ${inputTextClass} ${placeholderClass} focus:outline-none transition bg-transparent`}
             />
             {/* Phone with prefix */}

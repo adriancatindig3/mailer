@@ -6,7 +6,7 @@ import { auth, db } from '../../config/firebase';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, AlertTriangle, X } from 'lucide-react';
+import { LogOut, AlertTriangle, X, HelpCircle, ChevronRight, BookOpen } from 'lucide-react';
 
 function Settings({ darkMode }) {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ function Settings({ darkMode }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [openManual, setOpenManual] = useState(false);
 
   // Theme-based classes
   const textClass = darkMode ? 'text-white' : 'text-gray-900';
@@ -22,7 +23,6 @@ function Settings({ darkMode }) {
   const textLightClass = darkMode ? 'text-gray-500' : 'text-gray-400';
   const cardBgClass = darkMode ? 'bg-gray-800' : 'bg-white';
   const cardBorderClass = darkMode ? 'border-gray-700' : 'border-gray-100';
-  const cardHeaderBgClass = darkMode ? 'bg-gray-800/50' : 'bg-gray-50';
   const iconBgClass = darkMode ? 'bg-gray-700' : 'bg-gray-100';
   const iconTextClass = darkMode ? 'text-gray-400' : 'text-gray-500';
   const dividerClass = darkMode ? 'border-gray-700' : 'border-gray-50';
@@ -38,6 +38,7 @@ function Settings({ darkMode }) {
   const warningTextClass = darkMode ? 'text-amber-400' : 'text-amber-700';
   const errorBgClass = darkMode ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-100';
   const errorTextClass = darkMode ? 'text-red-400' : 'text-red-500';
+  const manualBgClass = darkMode ? 'bg-gray-800' : 'bg-gray-50';
 
   const handleLogout = async () => {
     setLoading(true);
@@ -156,6 +157,75 @@ function Settings({ darkMode }) {
         </div>
 
         <div className="space-y-4">
+          {/* User Manual Section */}
+          <Section icon={BookOpen} title="User Manual">
+            <button
+              onClick={() => setOpenManual(!openManual)}
+              className="w-full flex items-center justify-between"
+            >
+              <span className={`text-sm ${textClass}`}>How to use e-CARD</span>
+              <ChevronRight 
+                size={16} 
+                className={`${textSubClass} transition-transform duration-200 ${openManual ? 'rotate-90' : ''}`}
+              />
+            </button>
+            
+            <AnimatePresence>
+              {openManual && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden mt-3"
+                >
+                  <div className={`${manualBgClass} rounded-xl p-4 space-y-4`}>
+                    {/* Getting Started */}
+                    <div>
+                      <h3 className={`text-sm font-semibold ${textClass} mb-2`}>📱 Getting Started</h3>
+                      <div className="space-y-2">
+                        <p className={`text-xs ${textSubClass}`}>1. Sign in with your Google account to create your profile</p>
+                        <p className={`text-xs ${textSubClass}`}>2. Go to Edit Profile to add your name, photo, and contact details</p>
+                        <p className={`text-xs ${textSubClass}`}>3. Your profile is automatically saved and ready to share</p>
+                      </div>
+                    </div>
+
+                    {/* QR Code */}
+                    <div>
+                      <h3 className={`text-sm font-semibold ${textClass} mb-2`}>📸 Sharing Your QR Code</h3>
+                      <div className="space-y-2">
+                        <p className={`text-xs ${textSubClass}`}>1. Click "My QR Code" from the sidebar menu</p>
+                        <p className={`text-xs ${textSubClass}`}>2. Download your QR code as PNG image</p>
+                        <p className={`text-xs ${textSubClass}`}>3. Print or display your QR code anywhere</p>
+                        <p className={`text-xs ${textSubClass}`}>4. Anyone can scan it with their phone camera to see your profile</p>
+                      </div>
+                    </div>
+
+                    {/* Share Link */}
+                    <div>
+                      <h3 className={`text-sm font-semibold ${textClass} mb-2`}>🔗 Sharing Your Profile Link</h3>
+                      <div className="space-y-2">
+                        <p className={`text-xs ${textSubClass}`}>1. Copy your profile link from the QR Code page</p>
+                        <p className={`text-xs ${textSubClass}`}>2. Share via text, email, or social media</p>
+                        <p className={`text-xs ${textSubClass}`}>3. Add to your email signature or social bios</p>
+                      </div>
+                    </div>
+
+                    {/* Pro Tips */}
+                    <div>
+                      <h3 className={`text-sm font-semibold ${textClass} mb-2`}>💡 Tips</h3>
+                      <div className="space-y-2">
+                        <p className={`text-xs ${textSubClass}`}>• Update your profile anytime - the link stays the same!</p>
+                        <p className={`text-xs ${textSubClass}`}>• Toggle dark/light mode for better visibility</p>
+                        <p className={`text-xs ${textSubClass}`}>• Perfect for networking events, job fairs, and meetings</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Section>
+
           {/* Account Section - Delete Account */}
           <Section icon={AlertTriangle} title="Account">
             <SettingRow 

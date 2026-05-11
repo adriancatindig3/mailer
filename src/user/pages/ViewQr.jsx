@@ -250,7 +250,7 @@ function ViewQr({ darkMode }) {
               ) : (
                 <>
                   <Download size={15} />
-                  Download QR Code Square
+                  Download QR
                 </>
               )}
             </button>
