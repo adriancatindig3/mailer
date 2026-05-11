@@ -1,43 +1,333 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import {
   FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaGithub,
   FaYoutube, FaGlobe, FaTiktok, FaPinterest, FaReddit,
-  FaEnvelope, FaPhone, FaMapMarkerAlt, FaBuilding,
-  FaLink
+  FaEnvelope, FaPhone, FaMapMarkerAlt, FaBuilding, FaCalendar,
+  FaCheckCircle, FaUser, FaBriefcase, FaShareAlt, FaLink,
+  FaTimes
 } from 'react-icons/fa';
 
 const FALLBACK_LOGO = '/CCC.png';
 
-const PublicProfile = () => {
-  const { userId } = useParams();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
-  const [schoolLogoURL, setSchoolLogoURL] = useState(FALLBACK_LOGO);
-  const [selectedLayout, setSelectedLayout] = useState(1);
+
+
+const FloatingConnectForm = ({
+  showConnectForm, setShowConnectForm,
+  userData,
+  connectName, setConnectName,
+  connectEmail, setConnectEmail,
+  connectCompany, setConnectCompany,
+  connectPhone, setConnectPhone,
+  message, setMessage,
+  handleConnectSubmit,
+  isSending, sendSuccess, sendError,
+  darkMode = true,
+}) => {
+  const nameInputRef = useRef(null);
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch school logo
-        const schoolSnap = await getDoc(doc(db, 'settings', 'school'));
-        if (schoolSnap.exists() && schoolSnap.data().logoURL) {
-          setSchoolLogoURL(schoolSnap.data().logoURL);
-        }
+    if (showConnectForm && nameInputRef.current) {
+      setTimeout(() => nameInputRef.current?.focus(), 100);
+    }
+  }, [showConnectForm]);
 
-        // Fetch user data
+  const handlePhoneChange = (e) => {
+    let value = e.target.value;
+    // Remove any non-digit characters
+    let digits = value.replace(/\D/g, '');
+    // Limit to 10 digits
+    if (digits.length > 10) {
+      digits = digits.slice(0, 10);
+    }
+    // Store just the digits (without +63 prefix)
+    setConnectPhone(digits);
+    // Validate
+    if (digits.length > 0 && digits.length !== 10) {
+      setPhoneError('Phone number must be exactly 10 digits');
+    } else {
+      setPhoneError('');
+    }
+  };
+
+  const handlePhoneBlur = () => {
+    if (connectPhone.length > 0 && connectPhone.length !== 10) {
+      setPhoneError('Phone number must be exactly 10 digits');
+    }
+  };
+
+  const isFormValid = () => {
+    if (connectPhone.length > 0 && connectPhone.length !== 10) {
+      return false;
+    }
+    return true;
+  };
+
+  if (!showConnectForm) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl animate-slideUp overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Connect with {userData?.displayName?.split(' ')[0] || 'User'}
+              </h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Fill out the form below to send a message
+              </p>
+            </div>
+            <button
+              onClick={() => setShowConnectForm(false)}
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all -mt-1 -mr-1"
+              type="button"
+            >
+              <FaTimes className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {sendSuccess ? (
+          <div className="px-6 py-12 text-center">
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+              <FaCheckCircle className="w-7 h-7 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold mb-1 text-gray-900">
+              Request Sent!
+            </h3>
+            <p className="text-sm text-gray-600">
+              Your connection request has been sent successfully.
+            </p>
+          </div>
+        ) : (
+          <div className="px-6 py-5">
+            {sendError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
+                <p className="text-xs text-red-600">{sendError}</p>
+              </div>
+            )}
+            
+            <form onSubmit={handleConnectSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700">
+                  Your Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={connectName}
+                  onChange={e => setConnectName(e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition-all bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700">
+                  Your Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={connectEmail}
+                  onChange={e => setConnectEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition-all bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700">
+                  Company Name <span className="text-gray-400 text-xs">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={connectCompany}
+                  onChange={e => setConnectCompany(e.target.value)}
+                  placeholder="Your company"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition-all bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700">
+                  Phone Number <span className="text-gray-400 text-xs">(optional)</span>
+                </label>
+                <div className="flex items-stretch">
+                  <span className="inline-flex items-center px-3 py-2 text-sm rounded-l-lg bg-gray-100 text-gray-600 border border-r-0 border-gray-200 whitespace-nowrap">
+                    +63
+                  </span>
+                  <input
+                    type="tel"
+                    value={connectPhone}
+                    onChange={handlePhoneChange}
+                    onBlur={handlePhoneBlur}
+                    placeholder="9123456789"
+                    className={`w-full px-3 py-2 text-sm rounded-r-lg outline-none transition-all bg-gray-50 text-gray-900 placeholder-gray-400 border ${
+                      phoneError ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
+                    } focus:ring-2 focus:ring-blue-500/20`}
+                  />
+                </div>
+                {phoneError && (
+                  <p className="text-xs text-red-500 mt-1">{phoneError}</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">
+                  Enter 10 digits (e.g., 9123456789)
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700">
+                  Message <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  placeholder={`What would you like to say to ${userData?.displayName?.split(' ')[0] || 'them'}?`}
+                  required
+                  rows="3"
+                  className="w-full px-3 py-2 text-sm rounded-lg outline-none transition-all resize-none bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              
+              <button
+                type="submit"
+                disabled={isSending || !!phoneError || !isFormValid()}
+                className="w-full py-2.5 rounded-lg font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              >
+                {isSending ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Sending...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <FaEnvelope className="w-3.5 h-3.5" />
+                    Send Connection Request
+                  </span>
+                )}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+
+
+
+
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+const PublicProfile = () => {
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { userId } = useParams();
+  const navigate = useNavigate();
+
+  const [showConnectForm, setShowConnectForm] = useState(false);
+  const [connectEmail, setConnectEmail] = useState('');
+  const [connectName, setConnectName] = useState('');
+  const [connectCompany, setConnectCompany] = useState('');
+  const [connectPhone, setConnectPhone] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState(false);
+  const [sendError, setSendError] = useState('');
+
+  useEffect(() => {
+    const handleEscapeKey = e => {
+      if (e.key === 'Escape' && showConnectForm) setShowConnectForm(false);
+    };
+    if (showConnectForm) document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [showConnectForm]);
+
+  const handleConnectSubmit = async e => {
+    e.preventDefault();
+    if (!connectEmail.trim() || !connectName.trim()) {
+      setSendError('Please fill in all required fields.');
+      return;
+    }
+    if (!userData?.email) {
+      setSendError('Profile owner has no email address configured.');
+      return;
+    }
+    setIsSending(true);
+    setSendError('');
+    
+    try {
+      const response = await fetch('/.netlify/functions/sendMail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          visitorEmail: connectEmail,
+          visitorName: connectName,
+          visitorCompany: connectCompany,
+          visitorPhone: connectPhone,
+          visitorMessage: message,
+          ownerEmail: userData.email,
+          ownerName: userData.displayName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsSending(false);
+        setSendSuccess(true);
+        setTimeout(() => {
+          setSendSuccess(false);
+          setShowConnectForm(false);
+          setConnectEmail('');
+          setConnectName('');
+          setConnectCompany('');
+          setConnectPhone('');
+          setMessage('');
+        }, 3000);
+      } else {
+        throw new Error(data.error || 'Failed to send');
+      }
+    } catch (err) {
+      setIsSending(false);
+      setSendError('Failed to send. Please try again.');
+      console.error('Email error:', err);
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userId) { navigate('/'); return; }
+      try {
         const userDocRef = doc(db, 'users', userId);
         const userDoc = await getDoc(userDocRef);
-        
-        if (!userDoc.exists()) {
-          navigate('/404');
-          return;
-        }
-
+        if (!userDoc.exists()) { setError('User not found'); setLoading(false); return; }
         const data = userDoc.data();
+        const allSocialLinks = {
+          facebook: data.socialLinks?.facebook || '',
+          twitter: data.socialLinks?.twitter || '',
+          instagram: data.socialLinks?.instagram || '',
+          linkedin: data.socialLinks?.linkedin || '',
+          github: data.socialLinks?.github || '',
+          youtube: data.socialLinks?.youtube || '',
+          website: data.socialLinks?.website || '',
+          ...data.socialLinks,
+        };
         setUserData({
           displayName: data.displayName || 'User',
           email: data.email || '',
@@ -47,69 +337,70 @@ const PublicProfile = () => {
           phoneNumber: data.phoneNumber || '',
           occupation: data.occupation || '',
           company: data.company || 'City College of Calamba',
-          socialLinks: data.socialLinks || {},
+          companyLogo: '/CCC.png',
+          joinDate: data.joinDate || '',
+          socialLinks: allSocialLinks,
           selectedLayout: data.selectedLayout || 1,
           coverPhotoURL: data.coverPhotoURL || '',
+          createdAt: data.createdAt || '',
           skills: data.skills || '',
         });
-        setSelectedLayout(data.selectedLayout || 1);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        navigate('/404');
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setError('Failed to load profile');
       } finally {
         setLoading(false);
       }
     };
-
-    if (userId) {
-      fetchData();
-    }
+    fetchUserData();
   }, [userId, navigate]);
 
-  const getSocialIcon = (platform) => {
-    const map = { 
-      facebook: <FaFacebook />, 
-      twitter: <FaTwitter />, 
-      instagram: <FaInstagram />, 
-      linkedin: <FaLinkedin />, 
-      github: <FaGithub />, 
-      youtube: <FaYoutube />, 
-      website: <FaGlobe />, 
-      tiktok: <FaTiktok />, 
-      pinterest: <FaPinterest />, 
-      reddit: <FaReddit /> 
+  // ─── Shared helpers ─────────────────────────────────────────────────────────
+  const getSocialIcon = platform => {
+    const icons = {
+      facebook: <FaFacebook className="w-3 h-3" />,
+      twitter: <FaTwitter className="w-3 h-3" />,
+      instagram: <FaInstagram className="w-3 h-3" />,
+      linkedin: <FaLinkedin className="w-3 h-3" />,
+      github: <FaGithub className="w-3 h-3" />,
+      youtube: <FaYoutube className="w-3 h-3" />,
+      website: <FaGlobe className="w-3 h-3" />,
+      tiktok: <FaTiktok className="w-3 h-3" />,
+      pinterest: <FaPinterest className="w-3 h-3" />,
+      reddit: <FaReddit className="w-3 h-3" />,
     };
-    return map[platform] || <FaLink />;
+    return icons[platform] || <FaLink className="w-3 h-3" />;
   };
 
-  const getInitials = (name) => {
+  const getInitials = name => {
     if (!name) return 'U';
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const SchoolLogo = ({ className = 'w-3 h-3', style = {} }) => (
-    <img 
-      src={schoolLogoURL} 
-      alt="School logo" 
-      className={`object-contain ${className}`} 
-      style={style}
-      onError={(e) => { e.target.src = FALLBACK_LOGO; }} 
-    />
+    <img src="/CCC.png" alt="School logo" className={`object-contain ${className}`} style={style} />
   );
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // ─── Universal Connect Button ───────────────────────────────────────────────
+  const ConnectButton = ({ onClick, dark = true }) => (
+    <button
+      onClick={onClick}
+      className={`w-full py-3 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+        dark 
+          ? 'bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white' 
+          : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white'
+      }`}
+    >
+      <span className="flex items-center justify-center gap-2">
+        <FaEnvelope className="w-4 h-4" />
+        Let's connect
+      </span>
+    </button>
+  );
 
-  if (!userData) {
-    return null;
-  }
-
-  // Layout 1 - Dark Green Theme
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 1 - Dark Green Theme (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout1 = () => (
     <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
       <div className="pt-6 pb-4 px-4">
@@ -133,11 +424,14 @@ const PublicProfile = () => {
         {userData?.skills && <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Skills</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').map((s, i) => <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}>{s.trim()}</span>)}</div></div>}
         {(userData?.email || userData?.phoneNumber) && <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><FaEnvelope /><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><FaPhone /><span>{userData.phoneNumber}</span></a>}</div></div>}
         {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Connect</h3><div className="grid grid-cols-4 gap-3">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 p-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}><div style={{ color: 'rgba(255,255,255,0.7)' }}>{getSocialIcon(p)}</div><span className="text-[9px] capitalize" style={{ color: 'rgba(255,255,255,0.5)' }}>{p}</span></a>)}</div></div>}
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
       </div>
     </div>
   );
 
-  // Layout 2 - Dark Blue Theme
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 2 - Dark Navy Theme (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout2 = () => (
     <div className="w-full font-['Inter'] text-white" style={{ background: '#0f1623' }}>
       <div className="pt-6 pb-4 px-4">
@@ -161,11 +455,14 @@ const PublicProfile = () => {
         {userData?.skills && <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Skills</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').map((s, i) => <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)' }}>{s.trim()}</span>)}</div></div>}
         {(userData?.email || userData?.phoneNumber) && <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}><FaEnvelope /><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}><FaPhone /><span>{userData.phoneNumber}</span></a>}</div></div>}
         {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Connect</h3><div className="grid grid-cols-4 gap-3">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 p-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}><div style={{ color: 'rgba(255,255,255,0.65)' }}>{getSocialIcon(p)}</div><span className="text-[9px] capitalize" style={{ color: 'rgba(255,255,255,0.45)' }}>{p}</span></a>)}</div></div>}
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
       </div>
     </div>
   );
 
-  // Layout 3 - Light Theme
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 3 - Clean White Theme (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout3 = () => (
     <div className="w-full bg-white font-['Inter']">
       <div className="pt-6 pb-4 px-4">
@@ -189,11 +486,14 @@ const PublicProfile = () => {
         {userData?.skills && <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100"><h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Skills</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').map((s, i) => <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200">{s.trim()}</span>)}</div></div>}
         {(userData?.email || userData?.phoneNumber) && <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100"><h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm text-gray-700"><FaEnvelope className="text-gray-400" /><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm text-gray-700"><FaPhone className="text-gray-400" /><span>{userData.phoneNumber}</span></a>}</div></div>}
         {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100"><h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Connect</h3><div className="grid grid-cols-4 gap-3">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white border border-gray-200"><div className="text-gray-500">{getSocialIcon(p)}</div><span className="text-[9px] text-gray-400 capitalize">{p}</span></a>)}</div></div>}
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={false} />
       </div>
     </div>
   );
 
-  // Layout 4 - Dark Green with Cover
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 4 - Dark Green with Cover (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout4 = () => (
     <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
       <div className="h-36 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a2e1a, #0f1f0f)' }}>
@@ -211,12 +511,17 @@ const PublicProfile = () => {
           {userData?.skills && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}>{s.trim()}</span>)}</div></div>}
           {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}><FaEnvelope style={{ color: 'rgba(255,255,255,0.5)' }} /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}><FaPhone style={{ color: 'rgba(255,255,255,0.5)' }} /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
           {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Connect</h3><div className="flex flex-wrap gap-2">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>{getSocialIcon(p)}</a>)}</div></div>}
+          <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
         </div>
       </div>
     </div>
   );
 
-  // Layout 5 - Navy Blue with Cover
+  // Layouts 5-9 would continue here with the same structure...
+  // (I'll add them in the next message due to length)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 5 - Deep Slate Blue with Cover (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout5 = () => (
     <div className="w-full font-['Inter']" style={{ background: '#0d1b2e' }}>
       <div className="h-36 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0d1b2e, #1a3a5c)' }}>
@@ -234,12 +539,15 @@ const PublicProfile = () => {
           {userData?.skills && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: '#93b4d4' }}>{s.trim()}</span>)}</div></div>}
           {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: '#93b4d4' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}><FaEnvelope style={{ color: '#5a8ab0' }} /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: '#93b4d4' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}><FaPhone style={{ color: '#5a8ab0' }} /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
           {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Connect</h3><div className="flex flex-wrap gap-2">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)', color: '#93b4d4' }}>{getSocialIcon(p)}</a>)}</div></div>}
+          <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
         </div>
       </div>
     </div>
   );
 
-  // Layout 6 - Dark Modern with Cover
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 6 - Clean White with Cover (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout6 = () => (
     <div className="w-full bg-white font-['Inter']">
       <div className="h-36 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1f2937, #111827)' }}>
@@ -257,12 +565,15 @@ const PublicProfile = () => {
           {userData?.skills && <div className="mb-4 pb-4 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 bg-gray-50 text-gray-700 rounded-lg text-xs border border-gray-200">{s.trim()}</span>)}</div></div>}
           {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm text-gray-700"><div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center"><FaEnvelope className="text-gray-500 text-xs" /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm text-gray-700"><div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center"><FaPhone className="text-gray-500 text-xs" /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
           {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div><h3 className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Connect</h3><div className="flex flex-wrap gap-2">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl bg-gray-900 text-white flex items-center justify-center text-xs">{getSocialIcon(p)}</a>)}</div></div>}
+          <ConnectButton onClick={() => setShowConnectForm(true)} dark={false} />
         </div>
       </div>
     </div>
   );
 
-  // Layout 7 - Dark Green Vertical
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 7 - Dark Forest Vertical (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout7 = () => (
     <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(160deg, #2a3a2a, #1a2a1e)' }}>
       <div className="flex flex-col items-center pt-8 pb-4 px-4">
@@ -271,16 +582,29 @@ const PublicProfile = () => {
         </div>
         <h1 className="text-xl font-medium text-white mb-1">{userData?.displayName}</h1>
         <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.7)' }}>{userData?.occupation}{userData?.occupation && userData?.company ? ' | ' : ''}{userData?.company}</p>
-        <div className="w-full space-y-2">
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
+        <div className="w-full mt-4 space-y-2">
           {userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaPhone /></div><div className="flex-1"><div className="text-xs font-medium">Call me</div><div className="text-[11px] opacity-60">{userData.phoneNumber}</div></div><span className="text-xs opacity-40">↗</span></a>}
           {userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaEnvelope /></div><div className="flex-1"><div className="text-xs font-medium">Email me</div><div className="text-[11px] opacity-60">{userData.email}</div></div><span className="text-xs opacity-40">↗</span></a>}
-{userData?.location && <a href={userData.location} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaMapMarkerAlt /></div><div className="flex-1"><div className="text-xs font-medium">View on Google Maps</div></div><span className="text-xs opacity-40">↗</span></a>}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-60">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-40">↗</span></a>)}
+{userData?.location && (
+  <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}>
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
+      <FaMapMarkerAlt />
+    </div>
+    <div className="flex-1">
+      <div className="text-xs font-medium">View Location</div>
+    </div>
+    <span className="text-xs opacity-40">↗</span>
+  </a>
+)}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-60">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-40">↗</span></a>)}
         </div>
       </div>
     </div>
   );
 
-  // Layout 8 - Dark Blue Vertical
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 8 - Dark Navy Vertical (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout8 = () => (
     <div className="w-full font-['Inter'] text-white" style={{ background: '#0f1623' }}>
       <div className="flex flex-col items-center pt-8 pb-4 px-4">
@@ -289,16 +613,29 @@ const PublicProfile = () => {
         </div>
         <h1 className="text-xl font-medium text-white mb-1">{userData?.displayName}</h1>
         <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>{userData?.occupation}{userData?.occupation && userData?.company ? ' | ' : ''}{userData?.company}</p>
-        <div className="w-full space-y-2">
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
+        <div className="w-full mt-4 space-y-2">
           {userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}><FaPhone /></div><div className="flex-1"><div className="text-xs font-medium">Call me</div><div className="text-[11px] opacity-55">{userData.phoneNumber}</div></div><span className="text-xs opacity-35">↗</span></a>}
           {userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}><FaEnvelope /></div><div className="flex-1"><div className="text-xs font-medium">Email me</div><div className="text-[11px] opacity-55">{userData.email}</div></div><span className="text-xs opacity-35">↗</span></a>}
-{userData?.location && <a href={userData.location} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaMapMarkerAlt /></div><div className="flex-1"><div className="text-xs font-medium">View on Google Maps</div></div><span className="text-xs opacity-40">↗</span></a>}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-55">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-35">↗</span></a>)}
+{userData?.location && (
+  <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}>
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
+      <FaMapMarkerAlt />
+    </div>
+    <div className="flex-1">
+      <div className="text-xs font-medium">View Location</div>
+    </div>
+    <span className="text-xs opacity-35">↗</span>
+  </a>
+)}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-55">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-35">↗</span></a>)}
         </div>
       </div>
     </div>
   );
 
-  // Layout 9 - Light Vertical
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYOUT 9 - Clean White Vertical (from SelectLayout)
+  // ═══════════════════════════════════════════════════════════════════════════
   const Layout9 = () => (
     <div className="w-full bg-white font-['Inter']">
       <div className="flex flex-col items-center pt-8 pb-4 px-4">
@@ -307,37 +644,103 @@ const PublicProfile = () => {
         </div>
         <h1 className="text-xl font-medium text-gray-900 mb-1">{userData?.displayName}</h1>
         <p className="text-xs text-gray-500 mb-4">{userData?.occupation}{userData?.occupation && userData?.company ? ' | ' : ''}<span className="underline">{userData?.company}</span></p>
-        <div className="w-full space-y-2">
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={false} />
+        <div className="w-full mt-4 space-y-2">
           {userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-500"><FaPhone className="text-white text-xs" /></div><div className="flex-1"><div className="text-xs font-medium text-gray-900">Call me</div><div className="text-[11px] text-gray-500">{userData.phoneNumber}</div></div><span className="text-xs text-gray-400">↗</span></a>}
           {userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-500"><FaEnvelope className="text-white text-xs" /></div><div className="flex-1"><div className="text-xs font-medium text-gray-900">Email me</div><div className="text-[11px] text-gray-500">{userData.email}</div></div><span className="text-xs text-gray-400">↗</span></a>}
-{userData?.location && <a href={userData.location} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaMapMarkerAlt /></div><div className="flex-1"><div className="text-xs font-medium">View on Google Maps</div></div><span className="text-xs opacity-40">↗</span></a>}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600"><span className="text-white text-xs">{getSocialIcon(p)}</span></div><div className="flex-1"><div className="text-xs font-medium text-gray-900 capitalize">Follow me</div><div className="text-[11px] text-gray-500">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs text-gray-400">↗</span></a>)}
+{userData?.location && (
+  <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-red-500">
+      <FaMapMarkerAlt className="text-white text-xs" />
+    </div>
+    <div className="flex-1">
+      <div className="text-xs font-medium text-gray-900">View Location</div>
+    </div>
+    <span className="text-xs text-gray-400">↗</span>
+  </a>
+)}          {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-600"><span className="text-white text-xs">{getSocialIcon(p)}</span></div><div className="flex-1"><div className="text-xs font-medium text-gray-900 capitalize">Follow me</div><div className="text-[11px] text-gray-500">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs text-gray-400">↗</span></a>)}
         </div>
       </div>
     </div>
   );
+  // Map layouts
+  // Map layouts (all 9)
+const layoutComponents = { 
+  1: Layout1, 
+  2: Layout2, 
+  3: Layout3, 
+  4: Layout4, 
+  5: Layout5, 
+  6: Layout6, 
+  7: Layout7, 
+  8: Layout8, 
+  9: Layout9 
+};
 
-  // Render the selected layout
-  const renderLayout = () => {
-    switch (selectedLayout) {
-      case 1: return <Layout1 />;
-      case 2: return <Layout2 />;
-      case 3: return <Layout3 />;
-      case 4: return <Layout4 />;
-      case 5: return <Layout5 />;
-      case 6: return <Layout6 />;
-      case 7: return <Layout7 />;
-      case 8: return <Layout8 />;
-      case 9: return <Layout9 />;
-      default: return <Layout1 />;
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
+        <div className="bg-gray-800/50 backdrop-blur-md border border-gray-700/30 rounded-2xl p-8 max-w-md text-center">
+          <div className="w-12 h-12 rounded-full bg-red-900/30 border border-red-700/50 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <h2 className="text-xl font-medium text-gray-100 mb-2">Profile Not Found</h2>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <button onClick={() => navigate('/')} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Go Home</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userData) return null;
+
+  const SelectedLayout = layoutComponents[userData.selectedLayout] || Layout1;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto">
-        {renderLayout()}
+    <>
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px) scale(0.95); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-slideUp { animation: slideUp 0.3s ease-out forwards; }
+      `}</style>
+
+      <FloatingConnectForm
+        showConnectForm={showConnectForm}
+        setShowConnectForm={setShowConnectForm}
+        userData={userData}
+        connectName={connectName}
+        setConnectName={setConnectName}
+        connectEmail={connectEmail}
+        setConnectEmail={setConnectEmail}
+        connectCompany={connectCompany}
+        setConnectCompany={setConnectCompany}
+        connectPhone={connectPhone}
+        setConnectPhone={setConnectPhone}
+        message={message}
+        setMessage={setMessage}
+        handleConnectSubmit={handleConnectSubmit}
+        isSending={isSending}
+        sendSuccess={sendSuccess}
+        sendError={sendError}
+        darkMode={userData.selectedLayout !== 3}
+      />
+
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black p-4 flex items-center justify-center">
+        <div className="w-full max-w-md" style={{ height: '875px' }}>
+          <SelectedLayout />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
