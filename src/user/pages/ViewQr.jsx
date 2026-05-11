@@ -7,8 +7,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import QRCodeLib from 'react-qr-code';
 const QRCode = QRCodeLib.default || QRCodeLib.QRCode || QRCodeLib;
-import html2canvas from 'html2canvas';
 import { Download, Copy, Check, Wifi, Smartphone } from 'lucide-react';
+import Color from 'colorjs.io';
 
 function ViewQr({ darkMode }) {
   const navigate = useNavigate();
@@ -17,9 +17,92 @@ function ViewQr({ darkMode }) {
   const [qrData, setQrData] = useState({ name: '', email: '', profileUrl: '' });
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const qrContainerRef = useRef(null);
+  const qrFloatingBoxRef = useRef(null);
 
   const getProfileUrl = (userId) => `https://ccc-e-card.netlify.app/profile/${userId}`;
+
+  // Function to convert oklch to rgb
+  const convertOklchToRgb = (oklchString) => {
+    try {
+      // Match oklch(0.65 0.15 250) pattern
+      const match = oklchString.match(/oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)/);
+      if (match) {
+        const l = parseFloat(match[1]);
+        const c = parseFloat(match[2]);
+        const h = parseFloat(match[3]);
+        
+        const color = new Color(`oklch(${l} ${c} ${h})`);
+        const rgb = color.to('srgb');
+        
+        return `rgb(${Math.round(rgb.coords[0] * 255)}, ${Math.round(rgb.coords[1] * 255)}, ${Math.round(rgb.coords[2] * 255)})`;
+      }
+    } catch (e) {
+      console.warn('Failed to convert oklch color:', oklchString);
+    }
+    return null;
+  };
+
+  // Function to process all styles in the cloned document
+  const processStylesForClone = (clonedDoc) => {
+    const allElements = clonedDoc.querySelectorAll('*');
+    
+    allElements.forEach(el => {
+      const computedStyle = clonedDoc.defaultView.getComputedStyle(el);
+      
+      // Check and convert background colors
+      const bgColor = computedStyle.backgroundColor;
+      if (bgColor && bgColor.includes('oklch')) {
+        const rgbColor = convertOklchToRgb(bgColor);
+        if (rgbColor) el.style.backgroundColor = rgbColor;
+      }
+      
+      // Check and convert text colors
+      const textColor = computedStyle.color;
+      if (textColor && textColor.includes('oklch')) {
+        const rgbColor = convertOklchToRgb(textColor);
+        if (rgbColor) el.style.color = rgbColor;
+      }
+      
+      // Check and convert border colors
+      const borderColor = computedStyle.borderColor;
+      if (borderColor && borderColor.includes('oklch')) {
+        const rgbColor = convertOklchToRgb(borderColor);
+        if (rgbColor) el.style.borderColor = rgbColor;
+      }
+      
+      // Check all inline styles
+      if (el.style.background && el.style.background.includes('oklch')) {
+        const rgbColor = convertOklchToRgb(el.style.background);
+        if (rgbColor) el.style.background = rgbColor;
+      }
+      
+      if (el.style.backgroundColor && el.style.backgroundColor.includes('oklch')) {
+        const rgbColor = convertOklchToRgb(el.style.backgroundColor);
+        if (rgbColor) el.style.backgroundColor = rgbColor;
+      }
+      
+      if (el.style.color && el.style.color.includes('oklch')) {
+        const rgbColor = convertOklchToRgb(el.style.color);
+        if (rgbColor) el.style.color = rgbColor;
+      }
+      
+      // Handle gradients
+      if (el.style.backgroundImage && el.style.backgroundImage.includes('oklch')) {
+        // Replace oklch in gradient
+        let gradient = el.style.backgroundImage;
+        const oklchMatches = gradient.match(/oklch\([^)]+\)/g);
+        if (oklchMatches) {
+          oklchMatches.forEach(oklch => {
+            const rgbColor = convertOklchToRgb(oklch);
+            if (rgbColor) {
+              gradient = gradient.replace(oklch, rgbColor);
+            }
+          });
+          el.style.backgroundImage = gradient;
+        }
+      }
+    });
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -55,20 +138,36 @@ function ViewQr({ darkMode }) {
   };
 
   const handleDownloadQR = async () => {
-    if (!qrContainerRef.current) return;
+    if (!qrFloatingBoxRef.current) return;
     setDownloading(true);
     try {
-      const canvas = await html2canvas(qrContainerRef.current, {
+      const element = qrFloatingBoxRef.current;
+      
+      // Dynamic import html2canvas
+      const html2canvas = (await import('html2canvas')).default;
+      
+      // Capture with style processing
+      const canvas = await html2canvas(element, {
         backgroundColor: '#ffffff',
-        scale: 2,
+        scale: 4,
         logging: false,
+        useCORS: true,
+        allowTaint: false,
+        onclone: (clonedDoc, element) => {
+          // Process all oklch colors in the cloned document
+          processStylesForClone(clonedDoc);
+        }
       });
+      
+      // Download
       const link = document.createElement('a');
-      link.download = `e-CARD_${qrData.name.replace(/\s+/g, '_')}.png`;
+      link.download = `QR_Code_${qrData.name.replace(/\s+/g, '_')}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+      
     } catch (error) {
       console.error('Download failed:', error);
+      alert('Download failed. The QR code square will be saved as PNG.');
     } finally {
       setDownloading(false);
     }
@@ -116,11 +215,13 @@ function ViewQr({ darkMode }) {
         <div className={`h-1 bg-gradient-to-r ${gradientClass}`} />
 
         <div className="p-6 md:p-10">
-          {/* QR Code centred */}
+          {/* QR Code centered */}
           <div className="flex flex-col items-center mb-8">
-            <div
-              ref={qrContainerRef}
+            {/* Floating white box - this is what gets downloaded */}
+            <div 
+              ref={qrFloatingBoxRef}
               className="p-5 bg-white rounded-2xl shadow-md border border-gray-100 mb-5"
+              style={{ backgroundColor: '#ffffff' }} // Force white background
             >
               <QRCode
                 value={qrData.profileUrl}
@@ -144,12 +245,12 @@ function ViewQr({ darkMode }) {
               {downloading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  Processing…
+                  Processing...
                 </>
               ) : (
                 <>
                   <Download size={15} />
-                  Download as PNG
+                  Download QR Code Square
                 </>
               )}
             </button>
@@ -168,15 +269,16 @@ function ViewQr({ darkMode }) {
               <Wifi size={12} className={textSubClass} />
               <span className={`text-xs font-semibold ${textSubClass} uppercase tracking-widest`}>Shareable Link</span>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <div className={`flex-1 min-w-[160px] px-3 py-2.5 ${inputBgClass} border ${inputBorderClass} rounded-xl`}>
-                <code className={`text-xs ${inputTextClass} font-mono break-all`}>
+            
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className={`flex-1 min-w-0 px-3 py-2.5 ${inputBgClass} border ${inputBorderClass} rounded-xl overflow-hidden`}>
+                <code className={`text-xs ${inputTextClass} font-mono block truncate`}>
                   {qrData.profileUrl}
                 </code>
               </div>
               <button
                 onClick={handleCopyLink}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition border ${copyButtonClass}`}
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition border ${copyButtonClass} sm:w-auto w-full`}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? 'Copied!' : 'Copy'}
