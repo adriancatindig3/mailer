@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../../config/firebase';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-
-const cccLogo = '/CCC.png';
 
 import {
   FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaGithub,
@@ -13,7 +12,36 @@ import {
   FaCheckCircle, FaLink
 } from 'react-icons/fa';
 
-const SelectLayout = () => {
+const FALLBACK_LOGO = '/CCC.png';
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+const Toast = ({ message, visible, darkMode }) => (
+  <div style={{
+    position: 'fixed', bottom: 88, left: '50%',
+    transform: `translateX(-50%) translateY(${visible ? 0 : 12}px)`,
+    opacity: visible ? 1 : 0,
+    transition: 'opacity 0.25s ease, transform 0.25s ease',
+    zIndex: 9999,
+    pointerEvents: 'none',
+    background: darkMode ? '#f1f5f9' : '#0f172a',
+    color: darkMode ? '#0f172a' : '#f1f5f9',
+    padding: '0.6rem 1.1rem',
+    borderRadius: '2rem',
+    fontSize: '0.78rem',
+    fontWeight: 600,
+    letterSpacing: '0.01em',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.45rem',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+    whiteSpace: 'nowrap',
+  }}>
+    <FaCheckCircle style={{ fontSize: '0.75rem', opacity: 0.8 }} />
+    {message}
+  </div>
+);
+
+const SelectLayout = ({ darkMode }) => {
   const [selectedLayout, setSelectedLayout] = useState(1);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -24,9 +52,44 @@ const SelectLayout = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [slideDirection, setSlideDirection] = useState(null); // 'left' | 'right'
+  const [slideDirection, setSlideDirection] = useState(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimer = useRef(null);
+
+  // Double-tap tracking (mobile)
+  const lastTapRef = useRef(0);
+
+  const [schoolLogoURL, setSchoolLogoURL] = useState(FALLBACK_LOGO);
   const navigate = useNavigate();
-  const cccLogoUrl = cccLogo;
+
+  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gray-50';
+  const textClass = darkMode ? 'text-white' : 'text-gray-900';
+  const textSubClass = darkMode ? 'text-gray-400' : 'text-gray-500';
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-100';
+  const mobileHeaderBgClass = darkMode ? 'bg-gray-800' : 'bg-white';
+  const dotActiveClass = darkMode ? 'bg-white' : 'bg-gray-900';
+  const dotInactiveClass = darkMode ? 'bg-gray-600' : 'bg-gray-300';
+  const selectedRingClass = darkMode ? 'ring-blue-400' : 'ring-blue-500';
+  const hoverRingClass = darkMode ? 'hover:ring-gray-500' : 'hover:ring-gray-400';
+  const navButtonClass = darkMode ? 'bg-black/50 text-white' : 'bg-black/30 text-white';
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setToastVisible(true);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastVisible(false), 2200);
+  };
+
+  useEffect(() => {
+    const fetchSchoolLogo = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'school'));
+        if (snap.exists() && snap.data().logoURL) setSchoolLogoURL(snap.data().logoURL);
+      } catch (e) { console.error(e); }
+    };
+    fetchSchoolLogo();
+  }, []);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -53,7 +116,6 @@ const SelectLayout = () => {
             phoneNumber: data.phoneNumber || '',
             occupation: data.occupation || '',
             company: 'City College of Calamba',
-            companyLogo: cccLogoUrl,
             socialLinks: { facebook: data.socialLinks?.facebook || '', twitter: data.socialLinks?.twitter || '', instagram: data.socialLinks?.instagram || '', linkedin: data.socialLinks?.linkedin || '', github: data.socialLinks?.github || '', ...data.socialLinks },
             selectedLayout: data.selectedLayout || 1,
             coverPhotoURL: data.coverPhotoURL || '',
@@ -61,7 +123,7 @@ const SelectLayout = () => {
           });
           setSelectedLayout(data.selectedLayout || 1);
         } else {
-          setUserData({ displayName: currentUser.displayName || 'User', email: currentUser.email || '', photoURL: currentUser.photoURL || '', bio: '', location: '', phoneNumber: '', occupation: '', company: 'City College of Calamba', companyLogo: cccLogoUrl, socialLinks: {}, selectedLayout: 1, coverPhotoURL: '', skills: '' });
+          setUserData({ displayName: currentUser.displayName || 'User', email: currentUser.email || '', photoURL: currentUser.photoURL || '', bio: '', location: '', phoneNumber: '', occupation: '', company: 'City College of Calamba', socialLinks: {}, selectedLayout: 1, coverPhotoURL: '', skills: '' });
         }
       } catch (e) { console.error(e); }
     });
@@ -69,7 +131,7 @@ const SelectLayout = () => {
   }, [navigate]);
 
   const handleSelectLayout = async (layoutId) => {
-    if (!user) return;
+    if (!user || loading) return;
     setLoading(true);
     setSelectedLayout(layoutId);
     try {
@@ -79,10 +141,25 @@ const SelectLayout = () => {
         await updateDoc(userDocRef, { selectedLayout: layoutId, updatedAt: new Date().toISOString() });
       }
       setUserData(prev => ({ ...prev, selectedLayout: layoutId }));
-      setTimeout(() => setLoading(false), 500);
+      showToast(`Layout ${layoutId} applied`);
     } catch (e) {
       console.error(e);
-      setLoading(false);
+    } finally {
+      setTimeout(() => setLoading(false), 400);
+    }
+  };
+
+  // Double-tap handler (mobile overlay)
+  const handleMobileDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 320;
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      const id = layouts[currentIndex].id;
+      if (id !== selectedLayout) handleSelectLayout(id);
+      else showToast(`Layout ${id} already selected`);
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
     }
   };
 
@@ -96,7 +173,13 @@ const SelectLayout = () => {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // ─── LAYOUTS ────────────────────────────────────────────────────────────────
+  const SchoolLogo = ({ className = 'w-3 h-3', style = {} }) => (
+    <img src={schoolLogoURL} alt="School logo" className={`object-contain ${className}`} style={style}
+      onError={(e) => { e.target.src = FALLBACK_LOGO; }} />
+  );
+
+  // ─── LAYOUTS (Layout1 through Layout9 - same as before) ───────────────────
+  // ... (keep all Layout1 through Layout9 exactly as they are) ...
 
   const Layout1 = () => (
     <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
@@ -108,7 +191,7 @@ const SelectLayout = () => {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-white mb-1 truncate">{userData?.displayName}</h1>
             {userData?.occupation && <p className="text-sm font-medium truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{userData.occupation}</p>}
-            {userData?.company && <div className="flex items-center gap-1 mt-1"><img src={cccLogoUrl} alt="" className="w-3 h-3 object-contain opacity-80" /><span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>{userData.company}</span></div>}
+            {userData?.company && <div className="flex items-center gap-1 mt-1"><SchoolLogo className="w-3 h-3" style={{ opacity: 0.8 }} /><span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>{userData.company}</span></div>}
           </div>
         </div>
         {userData?.bio && <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.7)' }}>{userData.bio}</p>}
@@ -135,7 +218,7 @@ const SelectLayout = () => {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-white mb-1 truncate">{userData?.displayName}</h1>
             {userData?.occupation && <p className="text-sm font-medium truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{userData.occupation}</p>}
-            {userData?.company && <div className="flex items-center gap-1 mt-1"><img src={cccLogoUrl} alt="" className="w-3 h-3 object-contain opacity-80" /><span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{userData.company}</span></div>}
+            {userData?.company && <div className="flex items-center gap-1 mt-1"><SchoolLogo className="w-3 h-3" style={{ opacity: 0.8 }} /><span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{userData.company}</span></div>}
           </div>
         </div>
         {userData?.bio && <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.65)' }}>{userData.bio}</p>}
@@ -162,7 +245,7 @@ const SelectLayout = () => {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-gray-900 mb-1 truncate">{userData?.displayName}</h1>
             {userData?.occupation && <p className="text-sm font-medium text-gray-600 truncate">{userData.occupation}</p>}
-            {userData?.company && <div className="flex items-center gap-1 mt-1"><img src={cccLogoUrl} alt="" className="w-3 h-3 object-contain" /><span className="text-xs text-gray-400">{userData.company}</span></div>}
+            {userData?.company && <div className="flex items-center gap-1 mt-1"><SchoolLogo className="w-3 h-3" /><span className="text-xs text-gray-400">{userData.company}</span></div>}
           </div>
         </div>
         {userData?.bio && <p className="text-sm text-gray-600 leading-relaxed mb-4">{userData.bio}</p>}
@@ -191,7 +274,7 @@ const SelectLayout = () => {
         <div className="pt-12">
           <h1 className="text-xl font-bold text-white mb-1">{userData?.displayName}</h1>
           {userData?.occupation && <p className="text-sm font-medium mb-1" style={{ color: 'rgba(255,255,255,0.75)' }}>{userData.occupation}</p>}
-          {userData?.company && <div className="flex items-center gap-2 text-xs mb-4" style={{ color: 'rgba(255,255,255,0.55)' }}><img src={cccLogoUrl} alt="" className="w-4 h-4 object-contain opacity-80" /><span>{userData.company}</span></div>}
+          {userData?.company && <div className="flex items-center gap-2 text-xs mb-4" style={{ color: 'rgba(255,255,255,0.55)' }}><SchoolLogo className="w-4 h-4" style={{ opacity: 0.8 }} /><span>{userData.company}</span></div>}
           {userData?.bio && <p className="text-sm leading-relaxed mb-4 pb-4" style={{ color: 'rgba(255,255,255,0.7)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>{userData.bio}</p>}
           {userData?.skills && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}>{s.trim()}</span>)}</div></div>}
           {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}><FaEnvelope style={{ color: 'rgba(255,255,255,0.5)' }} /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}><FaPhone style={{ color: 'rgba(255,255,255,0.5)' }} /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
@@ -213,7 +296,7 @@ const SelectLayout = () => {
         <div className="pt-12">
           <h1 className="text-xl font-bold text-white mb-1">{userData?.displayName}</h1>
           {userData?.occupation && <p className="text-sm font-medium mb-1" style={{ color: '#93b4d4' }}>{userData.occupation}</p>}
-          {userData?.company && <div className="flex items-center gap-2 text-xs mb-4" style={{ color: '#5a8ab0' }}><img src={cccLogoUrl} alt="" className="w-4 h-4 object-contain" /><span>{userData.company}</span></div>}
+          {userData?.company && <div className="flex items-center gap-2 text-xs mb-4" style={{ color: '#5a8ab0' }}><SchoolLogo className="w-4 h-4" /><span>{userData.company}</span></div>}
           {userData?.bio && <p className="text-sm leading-relaxed mb-4 pb-4" style={{ color: '#93b4d4', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>{userData.bio}</p>}
           {userData?.skills && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: '#93b4d4' }}>{s.trim()}</span>)}</div></div>}
           {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: '#93b4d4' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}><FaEnvelope style={{ color: '#5a8ab0' }} /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: '#93b4d4' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}><FaPhone style={{ color: '#5a8ab0' }} /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
@@ -235,7 +318,7 @@ const SelectLayout = () => {
         <div className="pt-12">
           <h1 className="text-xl font-bold text-gray-900 mb-1">{userData?.displayName}</h1>
           {userData?.occupation && <p className="text-sm text-gray-600 mb-1 font-medium">{userData.occupation}</p>}
-          {userData?.company && <div className="flex items-center gap-2 text-xs text-gray-400 mb-4"><img src={cccLogoUrl} alt="" className="w-4 h-4 object-contain" /><span>{userData.company}</span></div>}
+          {userData?.company && <div className="flex items-center gap-2 text-xs text-gray-400 mb-4"><SchoolLogo className="w-4 h-4" /><span>{userData.company}</span></div>}
           {userData?.bio && <p className="text-sm text-gray-600 leading-relaxed mb-4 pb-4 border-b border-gray-100">{userData.bio}</p>}
           {userData?.skills && <div className="mb-4 pb-4 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 bg-gray-50 text-gray-700 rounded-lg text-xs border border-gray-200">{s.trim()}</span>)}</div></div>}
           {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4 border-b border-gray-100"><h3 className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm text-gray-700"><div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center"><FaEnvelope className="text-gray-500 text-xs" /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm text-gray-700"><div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center"><FaPhone className="text-gray-500 text-xs" /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
@@ -328,9 +411,7 @@ const SelectLayout = () => {
     setTouchEnd(current);
     if (touchStart !== null) {
       const offset = current - touchStart;
-      // Clamp drag so it doesn't go too far and rubber-band at edges
-      const clamped = Math.max(-120, Math.min(120, offset));
-      setDragOffset(clamped);
+      setDragOffset(Math.max(-120, Math.min(120, offset)));
     }
   };
 
@@ -351,7 +432,6 @@ const SelectLayout = () => {
         setSlideDirection(null);
       }, 280);
     } else {
-      // Snap back
       setDragOffset(0);
     }
     setTouchStart(null);
@@ -373,8 +453,8 @@ const SelectLayout = () => {
 
   if (!user || !userData) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+      <div className={`min-h-screen ${bgClass} flex items-center justify-center`}>
+        <div className={`w-10 h-10 border-2 ${darkMode ? 'border-gray-700 border-t-white' : 'border-gray-200 border-t-gray-900'} rounded-full animate-spin`} />
       </div>
     );
   }
@@ -382,45 +462,56 @@ const SelectLayout = () => {
   const currentLayout = layouts[currentIndex];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${bgClass}`}>
+      <Toast message={toastMessage} visible={toastVisible} darkMode={darkMode} />
 
-      {/* ── MOBILE: swipeable full-screen card ── */}
+      {/* ── MOBILE ── */}
       <div className="md:hidden flex flex-col h-screen">
-
-        {/* Counter + label */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-2 flex-shrink-0">
-          <h2 className="text-base font-semibold text-gray-900">Choose a theme</h2>
-          <span className="text-sm text-gray-400">{currentIndex + 1} / {layouts.length}</span>
+        <div className={`flex items-center justify-between px-4 pt-4 pb-2 flex-shrink-0 ${mobileHeaderBgClass}`}>
+          <div>
+            <h2 className={`text-base font-semibold ${textClass}`}>Choose a theme</h2>
+            <p className={`text-xs ${textSubClass} mt-0.5`}>Double-tap to select</p>
+          </div>
+          <span className={`text-sm ${textSubClass}`}>{currentIndex + 1} / {layouts.length}</span>
         </div>
 
-        {/* Dot indicators */}
         <div className="flex justify-center gap-1.5 pb-3 flex-shrink-0">
           {layouts.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goToIndex(i)}
-              className={`rounded-full transition-all ${i === currentIndex ? 'w-5 h-2 bg-gray-900' : 'w-2 h-2 bg-gray-300'}`}
+            <button key={i} onClick={() => goToIndex(i)}
+              className={`rounded-full transition-all ${i === currentIndex ? `w-5 h-2 ${dotActiveClass}` : `w-2 h-2 ${dotInactiveClass}`}`}
             />
           ))}
         </div>
 
-        {/* Scrollable card area — card shows full height, user can scroll down */}
-        <div className="flex-1 overflow-y-auto px-4 pb-2" style={{ minHeight: 0 }}>
+        <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ minHeight: 0 }}>
           <div className="relative rounded-2xl overflow-hidden">
-            {/* Selected ring */}
             {selectedLayout === currentLayout.id && (
-              <div className="absolute inset-0 ring-2 ring-blue-500 rounded-2xl z-10 pointer-events-none" />
+              <div className={`absolute inset-0 ring-2 ${selectedRingClass} rounded-2xl z-10 pointer-events-none`} />
             )}
 
-            {/* Animated card wrapper — natural height, not clipped */}
+            {selectedLayout === currentLayout.id && (
+              <div style={{
+                position: 'absolute', top: 10, right: 10, zIndex: 20,
+                background: darkMode ? '#1d4ed8' : '#2563eb',
+                color: '#fff',
+                fontSize: '0.62rem', fontWeight: 700,
+                padding: '0.2rem 0.55rem',
+                borderRadius: '2rem',
+                display: 'flex', alignItems: 'center', gap: '0.3rem',
+                pointerEvents: 'none',
+              }}>
+                <FaCheckCircle style={{ fontSize: '0.6rem' }} /> Selected
+              </div>
+            )}
+
             <div
               className="w-full rounded-2xl overflow-hidden"
               style={{
                 transform: `translateX(${dragOffset}px) scale(${isAnimating ? 0.97 : dragOffset !== 0 ? Math.max(0.94, 1 - Math.abs(dragOffset) / 800) : 1})`,
                 transition: isAnimating
-                  ? 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease'
+                  ? 'transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease'
                   : dragOffset === 0
-                  ? 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  ? 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)'
                   : 'none',
                 opacity: isAnimating ? 0 : Math.max(0.6, 1 - Math.abs(dragOffset) / 300),
               }}
@@ -428,109 +519,110 @@ const SelectLayout = () => {
               {currentLayout.component}
             </div>
 
-            {/* Transparent touch-capture overlay */}
             <div
               className="absolute inset-0 z-20"
               style={{ touchAction: 'pan-y' }}
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
+              onTouchEnd={(e) => {
+                const dx = touchStart !== null && touchEnd !== null ? Math.abs(touchStart - touchEnd) : 0;
+                if (dx < 10) handleMobileDoubleTap();
+                onTouchEnd();
+              }}
             />
 
-            {/* Left arrow */}
             {currentIndex > 0 && (
-              <button
-                className="absolute left-2 top-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
-                onClick={() => goToIndex(currentIndex - 1)}
-              >
-                ‹
-              </button>
+              <button className={`absolute left-2 top-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white text-xl font-bold ${navButtonClass}`}
+                style={{ backdropFilter: 'blur(4px)' }}
+                onClick={() => goToIndex(currentIndex - 1)}>‹</button>
             )}
-
-            {/* Right arrow */}
             {currentIndex < layouts.length - 1 && (
-              <button
-                className="absolute right-2 top-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
-                onClick={() => goToIndex(currentIndex + 1)}
-              >
-                ›
-              </button>
+              <button className={`absolute right-2 top-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white text-xl font-bold ${navButtonClass}`}
+                style={{ backdropFilter: 'blur(4px)' }}
+                onClick={() => goToIndex(currentIndex + 1)}>›</button>
             )}
           </div>
         </div>
-
-        {/* Select button — fixed at bottom */}
-        <div className="px-4 py-4 flex-shrink-0 bg-gray-50 border-t border-gray-100">
-          <button
-            onClick={() => handleSelectLayout(currentLayout.id)}
-            disabled={loading && selectedLayout === currentLayout.id}
-            className={`w-full py-3.5 rounded-xl text-sm font-semibold transition-all ${
-              selectedLayout === currentLayout.id
-                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                : 'bg-gray-900 text-white hover:bg-gray-700'
-            }`}
-          >
-            {loading && selectedLayout === currentLayout.id ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-3 h-3 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
-                Applying…
-              </span>
-            ) : selectedLayout === currentLayout.id ? (
-              <span className="flex items-center justify-center gap-2"><FaCheckCircle /> Selected — Layout {currentLayout.id}</span>
-            ) : (
-              `Select Layout ${currentLayout.id}`
-            )}
-          </button>
-        </div>
       </div>
 
-      {/* ── DESKTOP: grid of raw previews ── */}
+      {/* ── DESKTOP ── */}
       <div className="hidden md:block max-w-7xl mx-auto p-6">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Choose a theme</h2>
-          <p className="text-sm text-gray-500 mt-1">Pick the layout for your digital card</p>
+          <h2 className={`text-xl font-bold ${textClass}`}>Choose a theme</h2>
+          <p className={`text-sm ${textSubClass} mt-1`}>Click "Select" on any layout to apply it</p>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-          {layouts.map((layout) => (
-            <div key={layout.id} className="flex flex-col gap-2">
-              <div
-                className={`rounded-2xl cursor-pointer transition-all ${
-                  selectedLayout === layout.id
-                    ? 'ring-2 ring-blue-500 shadow-lg'
-                    : 'ring-1 ring-gray-200 hover:ring-gray-400 hover:shadow-md'
-                }`}
-                style={{ minHeight: '620px' }}
-                onClick={() => handleSelectLayout(layout.id)}
-              >
-                <div className="w-full pointer-events-none rounded-2xl overflow-hidden">
-                  {layout.component}
-                </div>
-              </div>
+          {layouts.map((layout) => {
+            const isSelected = selectedLayout === layout.id;
+            return (
+              <div key={layout.id} className="flex flex-col gap-3">
+                <div
+                  className={`rounded-2xl transition-all relative overflow-hidden ${
+                    isSelected
+                      ? `ring-2 ${selectedRingClass} shadow-lg`
+                      : `ring-1 ${darkMode ? 'ring-gray-700' : 'ring-gray-200'} ${hoverRingClass}`
+                  }`}
+                >
+                  {isSelected && (
+                    <div style={{
+                      position: 'absolute', top: 10, right: 10, zIndex: 10,
+                      background: darkMode ? '#1d4ed8' : '#2563eb',
+                      color: '#fff',
+                      fontSize: '0.62rem', fontWeight: 700,
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '2rem',
+                      display: 'flex', alignItems: 'center', gap: '0.3rem',
+                      pointerEvents: 'none',
+                    }}>
+                      <FaCheckCircle style={{ fontSize: '0.6rem' }} /> Selected
+                    </div>
+                  )}
 
-              <button
-                onClick={() => handleSelectLayout(layout.id)}
-                disabled={loading && selectedLayout === layout.id}
-                className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  selectedLayout === layout.id
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'bg-gray-900 text-white hover:bg-gray-700'
-                }`}
-              >
-                {loading && selectedLayout === layout.id ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-3 h-3 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
-                    Applying…
-                  </span>
-                ) : selectedLayout === layout.id ? (
-                  <span className="flex items-center justify-center gap-2"><FaCheckCircle /> Selected</span>
-                ) : (
-                  `Layout ${layout.id}`
-                )}
-              </button>
-            </div>
-          ))}
+                  {loading && selectedLayout === layout.id && (
+                    <div style={{
+                      position: 'absolute', inset: 0, zIndex: 20,
+                      background: 'rgba(0,0,0,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      borderRadius: '1rem',
+                    }}>
+                      <div className={`w-6 h-6 border-2 ${darkMode ? 'border-white/40 border-t-white' : 'border-gray-400 border-t-gray-900'} rounded-full animate-spin`} />
+                    </div>
+                  )}
+
+                  <div className="w-full rounded-2xl overflow-hidden pointer-events-none">
+                    {layout.component}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleSelectLayout(layout.id)}
+                  disabled={loading && selectedLayout === layout.id}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    isSelected
+                      ? darkMode 
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 cursor-default'
+                        : 'bg-blue-50 text-blue-600 border border-blue-200 cursor-default'
+                      : darkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-gray-900 text-white hover:bg-gray-700'
+                  } ${loading && selectedLayout === layout.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {loading && selectedLayout === layout.id ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className={`w-3 h-3 border-2 ${darkMode ? 'border-white/30 border-t-white' : 'border-gray-400 border-t-gray-900'} rounded-full animate-spin`} />
+                      Applying...
+                    </span>
+                  ) : isSelected ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <FaCheckCircle size={12} /> Selected
+                    </span>
+                  ) : (
+                    `Select Layout ${layout.id}`
+                  )}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

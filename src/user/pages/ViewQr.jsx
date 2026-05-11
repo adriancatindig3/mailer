@@ -10,7 +10,7 @@ const QRCode = QRCodeLib.default || QRCodeLib.QRCode || QRCodeLib;
 import html2canvas from 'html2canvas';
 import { Download, Copy, Check, Wifi, Smartphone } from 'lucide-react';
 
-function ViewQr() {
+function ViewQr({ darkMode }) {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,17 +23,12 @@ function ViewQr() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        navigate('/login', { replace: true });
-        return;
-      }
+      if (!currentUser) { navigate('/login', { replace: true }); return; }
       setUser(currentUser);
-
       try {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         const data = userDoc.exists() ? userDoc.data() : {};
-
         setQrData({
           name: data.displayName || currentUser.displayName || 'User',
           email: currentUser.email || '',
@@ -50,7 +45,6 @@ function ViewQr() {
         setLoading(false);
       }
     });
-
     return () => unsubscribe();
   }, [navigate]);
 
@@ -80,130 +74,142 @@ function ViewQr() {
     }
   };
 
+  // Theme-based classes
+  const textClass = darkMode ? 'text-white' : 'text-gray-900';
+  const textSubClass = darkMode ? 'text-gray-400' : 'text-gray-500';
+  const cardBgClass = darkMode ? 'bg-gray-800' : 'bg-white';
+  const cardBorderClass = darkMode ? 'border-gray-700' : 'border-gray-100';
+  const inputBgClass = darkMode ? 'bg-gray-900' : 'bg-gray-50';
+  const inputBorderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const inputTextClass = darkMode ? 'text-gray-300' : 'text-gray-500';
+  const infoBgClass = darkMode ? 'bg-gray-800' : 'bg-gray-50';
+  const infoBorderClass = darkMode ? 'border-gray-700' : 'border-gray-100';
+  const iconBgClass = darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-200';
+  const iconTextClass = darkMode ? 'text-gray-400' : 'text-gray-500';
+  const dividerClass = darkMode ? 'bg-gray-800' : 'bg-gray-100';
+  const dotClass = darkMode ? 'bg-gray-600' : 'bg-gray-300';
+  const copyButtonClass = copied
+    ? (darkMode ? 'bg-green-900/20 text-green-400 border-green-800' : 'bg-green-50 text-green-600 border-green-200')
+    : (darkMode ? 'bg-white text-gray-900 hover:opacity-80' : 'bg-gray-900 text-white hover:opacity-80');
+  const downloadButtonClass = darkMode ? 'bg-white text-gray-900 hover:opacity-80' : 'bg-gray-900 text-white hover:opacity-80';
+  const gradientClass = darkMode ? 'from-gray-600 via-gray-400 to-gray-600' : 'from-gray-900 via-gray-500 to-gray-900';
+  const footerTextClass = darkMode ? 'text-gray-700' : 'text-gray-300';
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+      <div className="flex items-center justify-center py-20">
+        <div className={`w-10 h-10 border-4 ${darkMode ? 'border-gray-700 border-t-white' : 'border-gray-200 border-t-gray-900'} rounded-full animate-spin`} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-4 md:py-6">
+    <div>
+      {/* Page header */}
+      <div className="mb-8">
+        <h1 className={`text-2xl md:text-3xl font-bold ${textClass}`}>My QR Code</h1>
+        <p className={`${textSubClass} mt-1 text-sm`}>Scan to instantly view your digital card</p>
+      </div>
 
-        {/* Main QR Card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-gray-900 via-gray-600 to-gray-900" />
+      {/* Main QR Card */}
+      <div className={`${cardBgClass} rounded-2xl border ${cardBorderClass} shadow-sm overflow-hidden`}>
+        <div className={`h-1 bg-gradient-to-r ${gradientClass}`} />
 
-          <div className="p-5 md:p-8">
-            {/* Title */}
-            <div className="text-center mb-6">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">Your QR Code</h2>
-              <p className="text-xs md:text-sm text-gray-500">Scan to instantly view your digital card</p>
+        <div className="p-6 md:p-10">
+          {/* QR Code centred */}
+          <div className="flex flex-col items-center mb-8">
+            <div
+              ref={qrContainerRef}
+              className="p-5 bg-white rounded-2xl shadow-md border border-gray-100 mb-5"
+            >
+              <QRCode
+                value={qrData.profileUrl}
+                size={190}
+                level="L"
+                bgColor="#ffffff"
+                fgColor="#111111"
+              />
             </div>
 
-            {/* QR Code */}
-            <div className="flex flex-col items-center mb-6">
-              <div
-                ref={qrContainerRef}
-                className="p-4 bg-white rounded-xl shadow-md border border-gray-100 mb-4"
-              >
-                <QRCode
-                  value={qrData.profileUrl}
-                  size={200}
-                  level="L"
-                  bgColor="#ffffff"
-                  fgColor="#111111"
-                />
-              </div>
+            <div className="text-center mb-5">
+              <div className={`text-base font-semibold ${textClass} mb-0.5`}>{qrData.name}</div>
+              <div className={`text-xs ${textSubClass}`}>{qrData.email}</div>
+            </div>
 
-              {/* User Info */}
-              <div className="text-center mb-4">
-                <div className="text-base font-semibold text-gray-900 mb-0.5">{qrData.name}</div>
-                <div className="text-xs text-gray-500">{qrData.email}</div>
-              </div>
+            <button
+              onClick={handleDownloadQR}
+              disabled={downloading}
+              className={`flex items-center gap-2 px-6 py-2.5 ${downloadButtonClass} rounded-full text-sm font-medium transition disabled:opacity-50`}
+            >
+              {downloading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Processing…
+                </>
+              ) : (
+                <>
+                  <Download size={15} />
+                  Download as PNG
+                </>
+              )}
+            </button>
+          </div>
 
-              {/* Download Button */}
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div className={`flex-1 h-px ${dividerClass}`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+            <div className={`flex-1 h-px ${dividerClass}`} />
+          </div>
+
+          {/* Shareable link */}
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-2.5">
+              <Wifi size={12} className={textSubClass} />
+              <span className={`text-xs font-semibold ${textSubClass} uppercase tracking-widest`}>Shareable Link</span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <div className={`flex-1 min-w-[160px] px-3 py-2.5 ${inputBgClass} border ${inputBorderClass} rounded-xl`}>
+                <code className={`text-xs ${inputTextClass} font-mono break-all`}>
+                  {qrData.profileUrl}
+                </code>
+              </div>
               <button
-                onClick={handleDownloadQR}
-                disabled={downloading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-full text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
+                onClick={handleCopyLink}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition border ${copyButtonClass}`}
               >
-                {downloading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Download size={16} />
-                    Download QR as PNG
-                  </>
-                )}
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
+          </div>
 
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-gray-100" />
-              <div className="w-2 h-2 rounded-full bg-gray-300" />
-              <div className="flex-1 h-px bg-gray-100" />
+          {/* Info box */}
+          <div className={`flex items-start gap-3 p-3.5 ${infoBgClass} border ${infoBorderClass} rounded-xl`}>
+            <div className={`w-8 h-8 rounded-lg ${iconBgClass} flex items-center justify-center flex-shrink-0`}>
+              <Smartphone size={13} className={iconTextClass} />
             </div>
+            <p className={`text-xs ${textSubClass} leading-relaxed`}>
+              This QR code links directly to your e-CARD profile. Anyone who scans it can view your digital identity card instantly.{' '}
+              <span className={darkMode ? 'font-semibold text-gray-300' : 'font-semibold text-gray-700'}>NFC ready</span> — tap to share!
+            </p>
+          </div>
 
-            {/* Profile Link */}
-            <div className="mb-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Wifi size={12} className="text-gray-400" />
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Shareable Link</span>
+          {/* Feature pills */}
+          <div className="flex justify-center gap-5 mt-5 flex-wrap">
+            {['Tap to Share', 'No App Needed', 'Real-time'].map((f, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+                <span className={`text-xs ${textSubClass}`}>{f}</span>
               </div>
-              <div className="flex gap-3 flex-wrap">
-                <div className="flex-1 min-w-[180px] px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                  <code className="text-xs text-gray-600 font-mono break-all">
-                    {qrData.profileUrl}
-                  </code>
-                </div>
-                <button
-                  onClick={handleCopyLink}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition"
-                >
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
-                  {copied ? 'Copied!' : 'Copy Link'}
-                </button>
-              </div>
-            </div>
-
-            {/* Info Box */}
-            <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg flex items-start gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-                <Smartphone size={14} className="text-gray-600" />
-              </div>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                This QR code links directly to your e-CARD profile. Anyone who scans it can view your digital identity card instantly.{' '}
-                <span className="font-semibold text-gray-700">NFC ready</span> — tap to share!
-              </p>
-            </div>
-
-            {/* Features */}
-            <div className="flex justify-center gap-4 flex-wrap">
-              {['Tap to Share', 'No App Needed', 'Real-time'].map((feature, i) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                  <span className="text-[10px] md:text-xs text-gray-500">{feature}</span>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-          <p className="text-[10px] text-gray-400">
-            © 2026 e-CARD · NFC Digital Business Card Platform · City College of Calamba
-          </p>
-        </div>
-
       </div>
+
+      <p className={`text-center text-[10px] ${footerTextClass} mt-6`}>
+        © 2026 e-CARD · NFC Digital Business Card Platform · City College of Calamba
+      </p>
     </div>
   );
 }

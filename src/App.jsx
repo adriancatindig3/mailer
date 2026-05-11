@@ -11,6 +11,9 @@ import UpdateProfile from './user/pages/UpdateProfile';
 import ViewQr from './user/pages/ViewQr';
 import SelectLayout from './user/pages/SelectLayout';
 import Pending from './user/pages/Pending';
+import Rejected from './user/pages/Rejected';
+import Deleted from './user/pages/Deleted';
+import AdminDashboard from './admin/AdminDashboard';
 
 // Protected route that checks if user is approved
 const ProtectedRoute = ({ children }) => {
@@ -19,7 +22,6 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Check if user is approved
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
@@ -28,8 +30,11 @@ const ProtectedRoute = ({ children }) => {
             const accountStatus = userDoc.data()?.accountStatus;
             if (accountStatus === 'approved') {
               setStatus('approved');
+            } else if (accountStatus === 'rejected') {
+              setStatus('rejected');
+            } else if (accountStatus === 'deleted') {
+              setStatus('deleted');
             } else {
-              // User is pending, redirect to pending page
               setStatus('pending');
             }
           } else {
@@ -56,12 +61,13 @@ const ProtectedRoute = ({ children }) => {
 
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
   if (status === 'pending') return <Navigate to="/pending" replace />;
+  if (status === 'rejected') return <Navigate to="/rejected" replace />;
+  if (status === 'deleted') return <Navigate to="/deleted" replace />;
   
-  // Only show children if status is 'approved'
   return children;
 };
 
-// Redirects logged-in users away from /login only (not /pending)
+// Redirects logged-in users away from /login
 const PublicRoute = ({ children }) => {
   const [status, setStatus] = useState('loading');
 
@@ -85,7 +91,7 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// Protected route for pending page - redirects to home if approved
+// Route for pending page
 const PendingRoute = () => {
   const [status, setStatus] = useState('loading');
 
@@ -99,10 +105,12 @@ const PendingRoute = () => {
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
             if (accountStatus === 'approved') {
-              // User is approved, redirect to home
               setStatus('approved');
+            } else if (accountStatus === 'rejected') {
+              setStatus('rejected');
+            } else if (accountStatus === 'deleted') {
+              setStatus('deleted');
             } else {
-              // User is still pending
               setStatus('pending');
             }
           } else {
@@ -129,9 +137,120 @@ const PendingRoute = () => {
 
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
   if (status === 'approved') return <Navigate to="/home" replace />;
+  if (status === 'rejected') return <Navigate to="/rejected" replace />;
+  if (status === 'deleted') return <Navigate to="/deleted" replace />;
   
-  // Only show pending page if status is 'pending'
   return <Pending />;
+};
+
+// Route for rejected page
+const RejectedRoute = () => {
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const accountStatus = userDoc.data()?.accountStatus;
+            if (accountStatus === 'rejected') {
+              setStatus('rejected');
+            } else if (accountStatus === 'approved') {
+              setStatus('approved');
+            } else if (accountStatus === 'deleted') {
+              setStatus('deleted');
+            } else {
+              setStatus('pending');
+            }
+          } else {
+            setStatus('unauthenticated');
+          }
+        } catch (error) {
+          console.error('Error checking user status:', error);
+          setStatus('unauthenticated');
+        }
+      } else {
+        setStatus('unauthenticated');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
+  if (status === 'approved') return <Navigate to="/home" replace />;
+  if (status === 'pending') return <Navigate to="/pending" replace />;
+  if (status === 'deleted') return <Navigate to="/deleted" replace />;
+  
+  return <Rejected />;
+};
+
+// Route for deleted page
+const DeletedRoute = () => {
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const accountStatus = userDoc.data()?.accountStatus;
+            if (accountStatus === 'deleted') {
+              setStatus('deleted');
+            } else if (accountStatus === 'approved') {
+              setStatus('approved');
+            } else if (accountStatus === 'rejected') {
+              setStatus('rejected');
+            } else {
+              setStatus('pending');
+            }
+          } else {
+            setStatus('unauthenticated');
+          }
+        } catch (error) {
+          console.error('Error checking user status:', error);
+          setStatus('unauthenticated');
+        }
+      } else {
+        // Check URL param for deleted flag
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('deleted') === 'true') {
+          setStatus('deleted');
+        } else {
+          setStatus('unauthenticated');
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (status === 'approved') return <Navigate to="/home" replace />;
+  if (status === 'pending') return <Navigate to="/pending" replace />;
+  if (status === 'rejected') return <Navigate to="/rejected" replace />;
+  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
+  
+  return <Deleted />;
 };
 
 function App() {
@@ -140,13 +259,14 @@ function App() {
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/pending" element={<PendingRoute />} />
-
-        <Route path="/"             element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/home"         element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/updateprofile"element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />
-        <Route path="/viewqr"       element={<ProtectedRoute><ViewQr /></ProtectedRoute>} />
+        <Route path="/rejected" element={<RejectedRoute />} />
+        <Route path="/deleted" element={<DeletedRoute />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/updateprofile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />
+        <Route path="/viewqr" element={<ProtectedRoute><ViewQr /></ProtectedRoute>} />
         <Route path="/selectlayout" element={<ProtectedRoute><SelectLayout /></ProtectedRoute>} />
-
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

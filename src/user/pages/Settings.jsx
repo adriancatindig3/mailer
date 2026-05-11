@@ -6,33 +6,38 @@ import { auth, db } from '../../config/firebase';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, User, LogOut, AlertTriangle, X, Moon } from 'lucide-react';
+import { LogOut, AlertTriangle, X } from 'lucide-react';
 
-function Settings() {
+function Settings({ darkMode }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  const [emailUpdates, setEmailUpdates] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark' ||
-      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
-  // Apply / remove the `dark` class on <html> whenever darkMode changes
-  useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
+  // Theme-based classes
+  const textClass = darkMode ? 'text-white' : 'text-gray-900';
+  const textSubClass = darkMode ? 'text-gray-400' : 'text-gray-500';
+  const textLightClass = darkMode ? 'text-gray-500' : 'text-gray-400';
+  const cardBgClass = darkMode ? 'bg-gray-800' : 'bg-white';
+  const cardBorderClass = darkMode ? 'border-gray-700' : 'border-gray-100';
+  const cardHeaderBgClass = darkMode ? 'bg-gray-800/50' : 'bg-gray-50';
+  const iconBgClass = darkMode ? 'bg-gray-700' : 'bg-gray-100';
+  const iconTextClass = darkMode ? 'text-gray-400' : 'text-gray-500';
+  const dividerClass = darkMode ? 'border-gray-700' : 'border-gray-50';
+  const inputBgClass = darkMode ? 'bg-gray-900' : 'bg-white';
+  const inputBorderClass = darkMode ? 'border-gray-700 focus:border-red-600' : 'border-gray-200 focus:border-red-300';
+  const inputTextClass = darkMode ? 'text-white' : 'text-gray-900';
+  const placeholderClass = darkMode ? 'placeholder-gray-600' : 'placeholder-gray-300';
+  const buttonBorderClass = darkMode ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-50';
+  const deleteButtonClass = darkMode ? 'bg-red-900/20 border-red-800 text-red-400 hover:bg-red-900/40' : 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100';
+  const modalBgClass = darkMode ? 'bg-gray-900' : 'bg-white';
+  const modalBorderClass = darkMode ? 'border-gray-700' : 'border-gray-100';
+  const warningBgClass = darkMode ? 'bg-amber-900/10 border-amber-800/30' : 'bg-amber-50 border-amber-100';
+  const warningTextClass = darkMode ? 'text-amber-400' : 'text-amber-700';
+  const errorBgClass = darkMode ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-100';
+  const errorTextClass = darkMode ? 'text-red-400' : 'text-red-500';
 
   const handleLogout = async () => {
     setLoading(true);
@@ -53,211 +58,133 @@ function Settings() {
     setDeleteConfirmText('');
     setDeleteError('');
   };
-const handleDeleteAccount = async () => {
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    setDeleteError('No user is currently signed in.');
-    return;
-  }
 
-  setDeleteLoading(true);
-  setDeleteError('');
+  const handleDeleteAccount = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) { setDeleteError('No user is currently signed in.'); return; }
 
-  try {
-    // Store the current user's UID before reauthentication
-    const originalUid = currentUser.uid;
-    
-    // Create a fresh provider instance
-    const provider = new GoogleAuthProvider();
-    
-    // Add custom parameters to ensure we get a fresh popup
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-    
-    // Re-authenticate with popup and wait for it to complete
-    const result = await reauthenticateWithPopup(currentUser, provider);
-    
-    // Verify the reauthenticated user matches the original user
-    if (result.user.uid !== originalUid) {
-      throw new Error('User mismatch after reauthentication');
-    }
-    
-    // Get the latest user instance
-    const user = auth.currentUser;
-    if (!user || user.uid !== originalUid) {
-      throw new Error('User session changed during reauthentication');
-    }
-    
-    const uid = user.uid;
+    setDeleteLoading(true);
+    setDeleteError('');
 
-    // Delete main user Firestore document
-    await deleteDoc(doc(db, 'users', uid));
+    try {
+      const originalUid = currentUser.uid;
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
 
-    // Delete all related data
-    const relatedCollections = ['qr_codes', 'scans', 'analytics'];
-    for (const colName of relatedCollections) {
-      try {
-        const q = query(collection(db, colName), where('uid', '==', uid));
-        const snapshot = await getDocs(q);
-        const deletions = snapshot.docs.map((d) => deleteDoc(d.ref));
-        await Promise.all(deletions);
-      } catch (err) {
-        console.warn(`Error deleting from ${colName}:`, err);
-        // Continue with other collections even if one fails
+      const result = await reauthenticateWithPopup(currentUser, provider);
+      if (result.user.uid !== originalUid) throw new Error('User mismatch after reauthentication');
+
+      const user = auth.currentUser;
+      if (!user || user.uid !== originalUid) throw new Error('User session changed during reauthentication');
+      const uid = user.uid;
+
+      await deleteDoc(doc(db, 'users', uid));
+
+      const relatedCollections = ['qr_codes', 'scans', 'analytics'];
+      for (const colName of relatedCollections) {
+        try {
+          const q = query(collection(db, colName), where('uid', '==', uid));
+          const snapshot = await getDocs(q);
+          await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+        } catch (err) {
+          console.warn(`Error deleting from ${colName}:`, err);
+        }
       }
+
+      await deleteUser(user);
+      localStorage.clear();
+      sessionStorage.clear();
+      navigate('/login', { replace: true });
+
+    } catch (error) {
+      console.error('Delete account error:', error);
+      if (error.code === 'auth/popup-closed-by-user') {
+        setDeleteError('Popup closed before completing. Please try again.');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        setDeleteError('Authentication cancelled. Please try again.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setDeleteError('Network error. Check your connection and try again.');
+      } else if (error.code === 'auth/user-mismatch') {
+        setDeleteError('User session changed. Sign out and back in, then retry.');
+      } else if (error.code === 'auth/too-many-requests') {
+        setDeleteError('Too many attempts. Please try again later.');
+      } else if (error.code === 'auth/requires-recent-login') {
+        setDeleteError('Session expired. Sign out and back in, then retry.');
+      } else {
+        setDeleteError(`Failed to delete account: ${error.message || 'Unknown error'}.`);
+      }
+    } finally {
+      setDeleteLoading(false);
     }
-
-    // Delete Firebase Auth account
-    await deleteUser(user);
-
-    // Clear local storage and redirect
-    localStorage.clear();
-    sessionStorage.clear();
-    navigate('/login', { replace: true });
-
-  } catch (error) {
-    console.error('Delete account error:', error);
-    
-    // More specific error handling
-    if (error.code === 'auth/popup-closed-by-user') {
-      setDeleteError('The popup was closed before completing authentication. Please try again.');
-    } else if (error.code === 'auth/cancelled-popup-request') {
-      setDeleteError('Authentication was cancelled. Please try again.');
-    } else if (error.code === 'auth/network-request-failed') {
-      setDeleteError('Network error. Please check your connection and try again.');
-    } else if (error.code === 'auth/user-mismatch') {
-      setDeleteError('User session changed. Please sign out and sign back in before deleting your account.');
-    } else if (error.code === 'auth/too-many-requests') {
-      setDeleteError('Too many attempts. Please try again later.');
-    } else if (error.code === 'auth/requires-recent-login') {
-      setDeleteError('Your session has expired. Please sign out and sign back in, then try again.');
-    } else if (error.message === 'User mismatch after reauthentication') {
-      setDeleteError('Authentication user mismatch. Please sign out and sign back in.');
-    } else {
-      setDeleteError(`Failed to delete account: ${error.message || 'Unknown error'}. Please try again.`);
-    }
-  } finally {
-    setDeleteLoading(false);
-  }
-};
+  };
 
   const canDelete = deleteConfirmText === 'DELETE';
 
-  // Reusable toggle
-  const Toggle = ({ value, onToggle }) => (
-    <button
-      onClick={onToggle}
-      className={`w-11 h-6 rounded-full transition-all duration-200 relative shadow-inner
-        ${value ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-600'}`}
-    >
-      <div
-        className={`w-5 h-5 rounded-full absolute top-0.5 transition-all duration-200 shadow-sm
-          ${value
-            ? 'right-0.5 bg-white dark:bg-gray-900'
-            : 'left-0.5 bg-white dark:bg-gray-400'
-          }`}
-      />
-    </button>
+  const Section = ({ icon: Icon, title, children }) => (
+    <div className={`${cardBgClass} rounded-2xl border ${cardBorderClass} overflow-hidden shadow-sm`}>
+      <div className={`px-5 py-4 border-b ${dividerClass} flex items-center gap-2.5`}>
+        <div className={`w-7 h-7 rounded-lg ${iconBgClass} flex items-center justify-center`}>
+          <Icon size={14} className={iconTextClass} />
+        </div>
+        <h2 className={`font-semibold ${textClass} text-sm`}>{title}</h2>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+
+  const SettingRow = ({ label, description, children }) => (
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className={`text-sm font-medium ${textClass}`}>{label}</p>
+        {description && <p className={`text-xs ${textSubClass} mt-0.5`}>{description}</p>}
+      </div>
+      <div className="flex-shrink-0">{children}</div>
+    </div>
   );
 
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.25 }}
       >
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your account preferences</p>
+        {/* Page header */}
+        <div className="mb-8">
+          <h1 className={`text-2xl md:text-3xl font-bold ${textClass}`}>Settings</h1>
+          <p className={`${textSubClass} mt-1 text-sm`}>Manage your account preferences</p>
         </div>
 
-        <div className="max-w-2xl space-y-4">
+        <div className="space-y-4">
+          {/* Account Section - Delete Account */}
+          <Section icon={AlertTriangle} title="Account">
+            <SettingRow 
+              label="Delete Account" 
+              description="Permanently remove your account and all data"
+            >
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 ${deleteButtonClass} border rounded-lg text-xs font-medium transition`}
+              >
+                <AlertTriangle size={12} />
+                Delete Account
+              </button>
+            </SettingRow>
+          </Section>
 
-          {/* Notification Settings */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-gray-50 dark:border-gray-700">
-              <div className="flex items-center gap-2">
-                <Bell size={18} className="text-gray-400 dark:text-gray-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Notifications</h2>
-              </div>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">Push Notifications</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Receive updates about your QR scans</p>
-                </div>
-                <Toggle value={notifications} onToggle={() => setNotifications(!notifications)} />
-              </div>
-
-              <div className="flex justify-between items-center pt-2">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">Email Updates</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Get weekly reports and tips</p>
-                </div>
-                <Toggle value={emailUpdates} onToggle={() => setEmailUpdates(!emailUpdates)} />
-              </div>
-            </div>
-          </div>
-
-          {/* Appearance */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-gray-50 dark:border-gray-700">
-              <div className="flex items-center gap-2">
-                <Moon size={18} className="text-gray-400 dark:text-gray-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Appearance</h2>
-              </div>
-            </div>
-
-            <div className="p-5">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">Dark Mode</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Switch to a darker interface</p>
-                </div>
-                <Toggle value={darkMode} onToggle={() => setDarkMode(!darkMode)} />
-              </div>
-            </div>
-          </div>
-
-          {/* Account Settings */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-gray-50 dark:border-gray-700">
-              <div className="flex items-center gap-2">
-                <User size={18} className="text-gray-400 dark:text-gray-500" />
-                <h2 className="font-semibold text-gray-900 dark:text-white">Account</h2>
-              </div>
-            </div>
-
-            <div className="p-5">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">Account Deletion</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Permanently delete your account and all data</p>
-                </div>
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg text-xs font-medium text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sign Out */}
+          {/* Sign Out Button */}
           <button
             onClick={handleLogout}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-50 shadow-sm"
+            className={`w-full flex items-center justify-center gap-2 ${cardBgClass} border ${cardBorderClass} ${textSubClass} py-3 rounded-2xl font-medium text-sm hover:bg-opacity-80 transition disabled:opacity-50 shadow-sm`}
           >
-            <LogOut size={16} />
+            <LogOut size={15} />
             {loading ? 'Signing out…' : 'Sign Out'}
           </button>
 
+          <p className={`text-center text-xs ${darkMode ? 'text-gray-700' : 'text-gray-300'} pb-4`}>
+            © 2026 e-CARD · City College of Calamba
+          </p>
         </div>
       </motion.div>
 
@@ -268,77 +195,76 @@ const handleDeleteAccount = async () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
             onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 24, scale: 0.97 }}
               transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+              className={`${modalBgClass} rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden`}
             >
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700">
-                <div className="flex items-center gap-2">
+              <div className={`flex items-center justify-between px-5 pt-5 pb-4 border-b ${modalBorderClass}`}>
+                <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                    <AlertTriangle size={15} className="text-red-500 dark:text-red-400" />
+                    <AlertTriangle size={14} className="text-red-500" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Delete account</h3>
+                  <h3 className={`font-semibold ${textClass} text-sm`}>Delete account</h3>
                 </div>
                 <button
                   onClick={handleCloseModal}
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                  className={`p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 ${textLightClass} transition`}
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
 
-              {/* Body */}
               <div className="px-5 py-4 space-y-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                <p className={`text-sm ${textSubClass} leading-relaxed`}>
                   This will permanently delete your account, profile, and all associated data.{' '}
-                  <span className="font-medium text-gray-900 dark:text-white">This cannot be undone.</span>
+                  <span className={`font-semibold ${textClass}`}>This cannot be undone.</span>
                 </p>
 
-                <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-                  You'll be asked to sign in with Google to confirm your identity before deletion.
-                </p>
+                <div className={`flex items-start gap-2.5 p-3 ${warningBgClass} border rounded-xl`}>
+                  <AlertTriangle size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className={`text-xs ${warningTextClass}`}>
+                    You'll be asked to sign in with Google to confirm your identity before deletion.
+                  </p>
+                </div>
 
-                {/* Type DELETE */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
-                    Type <span className="font-semibold text-gray-800 dark:text-gray-200">DELETE</span> to confirm
+                  <label className={`block text-xs font-medium ${textSubClass} mb-1.5`}>
+                    Type <span className={`font-bold ${textClass} font-mono`}>DELETE</span> to confirm
                   </label>
                   <input
                     type="text"
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                     placeholder="DELETE"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-red-300 dark:focus:border-red-500 transition"
+                    autoComplete="off"
+                    className={`w-full px-3 py-2 border ${inputBorderClass} rounded-xl text-sm ${inputBgClass} ${inputTextClass} ${placeholderClass} focus:outline-none transition font-mono`}
                   />
                 </div>
 
-                {/* Error */}
                 {deleteError && (
-                  <p className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg px-3 py-2">
+                  <p className={`text-xs ${errorTextClass} ${errorBgClass} border rounded-xl px-3 py-2`}>
                     {deleteError}
                   </p>
                 )}
               </div>
 
-              {/* Footer */}
               <div className="px-5 pb-5 flex gap-2">
                 <button
                   onClick={handleCloseModal}
-                  className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition font-medium"
+                  className={`flex-1 py-2.5 border ${buttonBorderClass} rounded-xl text-sm ${textSubClass} transition font-medium`}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteAccount}
                   disabled={!canDelete || deleteLoading}
-                  className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {deleteLoading ? (
                     <>
@@ -359,5 +285,3 @@ const handleDeleteAccount = async () => {
 }
 
 export default Settings;
-
-//current

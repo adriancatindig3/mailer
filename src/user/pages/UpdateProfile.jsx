@@ -1,9 +1,9 @@
-// UpdateProfile.jsx - Matches Home.jsx theme (white/light, black accents)
+// UpdateProfile.jsx - with dark mode support
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth, db } from '../../config/firebase';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, getDocs, collection, query, orderBy } from 'firebase/firestore';
 import { uploadImage } from '../../config/cloudinary';
 import Cropper from 'react-easy-crop';
 import {
@@ -13,7 +13,7 @@ import {
   Move, ZoomIn, RotateCw, Crop, CheckCircle
 } from "lucide-react";
 
-const UpdateProfile = () => {
+const UpdateProfile = ({ darkMode }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userData, setUserData] = useState({
@@ -22,10 +22,14 @@ const UpdateProfile = () => {
     location: '',
     email: '',
     occupation: '',
-    company: 'CCC School',
+    company: 'City College Of Calamba',
     phoneNumber: '',
     skills: '',
   });
+
+  // Dynamic roles from Firestore
+  const [positionOptions, setPositionOptions] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   const [socialLinks, setSocialLinks] = useState([{ id: Date.now(), url: '' }]);
 
@@ -62,15 +66,67 @@ const UpdateProfile = () => {
 
   const navigate = useNavigate();
 
-  const positionOptions = [
-    { value: 'Teaching', label: 'Teaching' },
-    { value: 'Non-Teaching', label: 'Non-Teaching' },
-    { value: 'Alumni', label: 'Alumni' }
-  ];
-
   const defaultProfilePic = 'https://res.cloudinary.com/dduu3qj8q/image/upload/v1770705831/users/profile-photos/fflqvlvzyt2cec7yukfp.jpg';
   const defaultCoverPhoto = 'https://res.cloudinary.com/dduu3qj8q/image/upload/v1770705831/users/profile-photos/fflqvlvzyt2cec7yukfp.jpg';
   const cccLogo = 'https://res.cloudinary.com/dduu3qj8q/image/upload/v1770705831/users/company-logos/ccc.png';
+
+  // Theme-based classes
+  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gray-50';
+  const cardBgClass = darkMode ? 'bg-gray-800' : 'bg-white';
+  const cardBorderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardHeaderBgClass = darkMode ? 'bg-gray-800/50' : 'bg-gray-50';
+  const textClass = darkMode ? 'text-white' : 'text-gray-900';
+  const textSubClass = darkMode ? 'text-gray-400' : 'text-gray-500';
+  const textLightClass = darkMode ? 'text-gray-500' : 'text-gray-400';
+  const inputBgClass = darkMode ? 'bg-gray-900' : 'bg-white';
+  const inputBorderClass = darkMode ? 'border-gray-700 focus:border-gray-500' : 'border-gray-200 focus:border-gray-400';
+  const inputTextClass = darkMode ? 'text-white' : 'text-gray-900';
+  const placeholderClass = darkMode ? 'placeholder-gray-600' : 'placeholder-gray-400';
+  const buttonPrimaryClass = darkMode ? 'bg-white text-gray-900 hover:bg-gray-200' : 'bg-gray-900 text-white hover:bg-gray-700';
+  const buttonSecondaryClass = darkMode ? 'border-gray-700 text-gray-300 hover:bg-gray-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50';
+  const errorBgClass = darkMode ? 'bg-red-900/20 border-red-800 text-red-400' : 'bg-red-50 border-red-200 text-red-600';
+  const successBgClass = darkMode ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-green-50 border-green-200 text-green-700';
+  const dividerClass = darkMode ? 'border-gray-700' : 'border-gray-100';
+  const modalBgClass = darkMode ? 'bg-gray-900' : 'bg-white';
+  const modalBorderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cropperBgClass = darkMode ? 'bg-gray-800' : 'bg-gray-100';
+  const badgeClass = darkMode ? 'text-amber-400 bg-amber-900/20 border-amber-800' : 'text-amber-600 bg-amber-50 border-amber-200';
+  const progressBarBgClass = darkMode ? 'bg-gray-700' : 'bg-gray-100';
+  const progressBarFillClass = darkMode ? 'bg-white' : 'bg-gray-900';
+
+  // ── Load dynamic roles from Firestore ───────────────────────────────────────
+  useEffect(() => {
+    const fetchRoles = async () => {
+      setRolesLoading(true);
+      try {
+        const snap = await getDocs(query(collection(db, 'userRoles'), orderBy('createdAt', 'asc')));
+        if (snap.empty) {
+          setPositionOptions([
+            { value: 'Teaching', label: 'Teaching' },
+            { value: 'Non-Teaching', label: 'Non-Teaching' },
+            { value: 'Alumni', label: 'Alumni' },
+          ]);
+        } else {
+          setPositionOptions(
+            snap.docs.map(d => {
+              const data = d.data();
+              return { value: data.label, label: data.label, color: data.color };
+            })
+          );
+        }
+      } catch (e) {
+        console.error('Failed to load roles:', e);
+        setPositionOptions([
+          { value: 'Teaching', label: 'Teaching' },
+          { value: 'Non-Teaching', label: 'Non-Teaching' },
+          { value: 'Alumni', label: 'Alumni' },
+        ]);
+      } finally {
+        setRolesLoading(false);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   const createImage = (url) =>
     new Promise((resolve, reject) => {
@@ -220,7 +276,7 @@ const UpdateProfile = () => {
             location: data.location || '',
             email: data.email || currentUser.email || '',
             occupation: data.occupation || data.role || '',
-            company: data.company || 'CCC School',
+            company: data.company || 'City College Of Calamba',
             phoneNumber: data.phoneNumber || data.phone || '',
             skills: data.skills || '',
           });
@@ -237,7 +293,7 @@ const UpdateProfile = () => {
             setSocialLinks(linksArray.length > 0 ? linksArray : [{ id: Date.now(), url: '' }]);
           }
         } else {
-          setUserData({ displayName: currentUser.displayName || '', bio: '', location: '', email: currentUser.email || '', occupation: '', company: 'CCC School', phoneNumber: '', skills: '' });
+          setUserData({ displayName: currentUser.displayName || '', bio: '', location: '', email: currentUser.email || '', occupation: '', company: 'City College Of Calamba', phoneNumber: '', skills: '' });
           const photo = currentUser.photoURL || '';
           setCurrentPhotoURL(photo);
           setProfilePicPreview(photo || defaultProfilePic);
@@ -301,7 +357,7 @@ const UpdateProfile = () => {
         bio: userData.bio || '',
         location: userData.location || '',
         occupation: userData.occupation || '',
-        company: 'CCC School',
+        company: 'City College Of Calamba',
         phoneNumber: userData.phoneNumber || '',
         skills: userData.skills || '',
         socialLinks: socialLinksObj,
@@ -327,7 +383,7 @@ const UpdateProfile = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-black rounded-full animate-spin" />
+        <div className={`w-8 h-8 border-2 ${darkMode ? 'border-gray-700 border-t-white' : 'border-gray-200 border-t-black'} rounded-full animate-spin`} />
       </div>
     );
   }
@@ -338,20 +394,20 @@ const UpdateProfile = () => {
       <AnimatePresence>
         {error && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            className={`mb-4 p-3 border rounded-lg text-sm ${errorBgClass}`}>
             {error}
           </motion.div>
         )}
         {success && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center gap-2">
+            className={`mb-4 p-3 border rounded-lg text-sm ${successBgClass} flex items-center gap-2`}>
             <Check size={15} /> {success}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Preview Card */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4 shadow-sm">
+      <div className={`${cardBgClass} border ${cardBorderClass} rounded-2xl overflow-hidden mb-4 shadow-sm`}>
         {/* Cover photo */}
         <div
           onClick={() => coverPhotoInputRef.current?.click()}
@@ -362,18 +418,18 @@ const UpdateProfile = () => {
               <Loader2 size={28} className="text-white animate-spin" />
             </div>
           )}
-          {coverPhotoPreview && (
-            <img src={coverPhotoPreview} alt="Cover" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+          {coverPhotoPreview && coverPhotoPreview !== defaultCoverPhoto && (
+            <img src={coverPhotoPreview} alt="Cover" className="w-full h-full object-cover" />
           )}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <div className="bg-white rounded-full px-4 py-2 flex items-center gap-2 text-sm font-medium text-gray-800">
+            <div className={`${cardBgClass} rounded-full px-4 py-2 flex items-center gap-2 text-sm font-medium ${textClass}`}>
               <Camera size={14} /> Change cover
             </div>
           </div>
           <input ref={coverPhotoInputRef} type="file" accept="image/*" onChange={handleCoverFileChange} className="hidden" />
         </div>
 
-        {/* Profile picture + info — sits fully below cover, no overlap */}
+        {/* Profile picture + info */}
         <div className="px-4 pt-3 pb-4 flex items-center gap-3">
           <div
             onClick={() => profilePicInputRef.current?.click()}
@@ -388,27 +444,27 @@ const UpdateProfile = () => {
               src={profilePicPreview}
               alt="Profile"
               className="w-16 h-16 rounded-full object-cover bg-gray-200"
-              style={{ border: '2px solid white', boxShadow: '0 0 0 1.5px #e5e7eb' }}
+              style={{ border: `2px solid ${darkMode ? '#1f2937' : 'white'}`, boxShadow: darkMode ? 'none' : '0 0 0 1.5px #e5e7eb' }}
               onError={(e) => { e.target.src = defaultProfilePic; }}
             />
-            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center border-2 border-white">
-              <Camera size={9} className="text-white" />
+            <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 ${buttonPrimaryClass} rounded-full flex items-center justify-center border-2 ${darkMode ? 'border-gray-800' : 'border-white'}`}>
+              <Camera size={9} className={darkMode ? 'text-gray-900' : 'text-white'} />
             </div>
             <input ref={profilePicInputRef} type="file" accept="image/*" onChange={handleProfileFileChange} className="hidden" />
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-gray-900 text-sm leading-tight truncate">
+            <p className={`font-semibold ${textClass} text-sm leading-tight truncate`}>
               {userData.displayName || 'Your Name'}
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <img src={cccLogo} alt="CCC" className="w-3.5 h-3.5 flex-shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
-              <p className="text-xs text-gray-500 truncate">
+              <p className={`text-xs ${textSubClass} truncate`}>
                 {userData.occupation ? `${userData.occupation} · ` : ''}{userData.company}
               </p>
             </div>
             {userData.location && (
-              <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+              <div className={`flex items-center gap-1 text-xs ${textLightClass} mt-0.5`}>
                 <MapPin size={10} /> {userData.location}
               </div>
             )}
@@ -421,31 +477,21 @@ const UpdateProfile = () => {
         {showProfileCropper && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2"><Move size={16} /> Position profile picture</h3>
-                <button onClick={() => setShowProfileCropper(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            <div className={`w-full max-w-md ${modalBgClass} rounded-2xl overflow-hidden`}>
+              <div className={`flex items-center justify-between px-4 py-3 border-b ${modalBorderClass}`}>
+                <h3 className={`font-semibold ${textClass} text-sm flex items-center gap-2`}><Move size={16} /> Position profile picture</h3>
+                <button onClick={() => setShowProfileCropper(false)} className={textLightClass}><X size={18} /></button>
               </div>
-              <div className="relative h-72 sm:h-80 bg-gray-100">
-                <Cropper
-                  image={profileImageToCrop}
-                  crop={profileCrop}
-                  zoom={profileZoom}
-                  aspect={1}
-                  onCropChange={setProfileCrop}
-                  onZoomChange={setProfileZoom}
-                  onCropComplete={onProfileCropComplete}
-                  cropShape="round"
-                  showGrid={true}
-                />
+              <div className={`relative h-72 sm:h-80 ${cropperBgClass}`}>
+                <Cropper image={profileImageToCrop} crop={profileCrop} zoom={profileZoom} aspect={1}
+                  onCropChange={setProfileCrop} onZoomChange={setProfileZoom} onCropComplete={onProfileCropComplete}
+                  cropShape="round" showGrid={true} />
               </div>
-              <div className="flex gap-3 p-4 border-t border-gray-200">
+              <div className={`flex gap-3 p-4 border-t ${modalBorderClass}`}>
                 <button onClick={() => setShowProfileCropper(false)}
-                  className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
-                  Cancel
-                </button>
+                  className={`flex-1 py-2.5 border ${buttonSecondaryClass} rounded-lg text-sm transition`}>Cancel</button>
                 <button onClick={handleProfileCropSave} disabled={isSavingProfilePic}
-                  className="flex-1 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-gray-700 transition disabled:opacity-50">
+                  className={`flex-1 py-2.5 ${buttonPrimaryClass} rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition disabled:opacity-50`}>
                   {isSavingProfilePic ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : <><CheckCircle size={14} /> Apply & save</>}
                 </button>
               </div>
@@ -459,30 +505,20 @@ const UpdateProfile = () => {
         {showCoverCropper && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-white rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2"><Move size={16} /> Position cover photo (16:9)</h3>
-                <button onClick={() => setShowCoverCropper(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            <div className={`w-full max-w-2xl ${modalBgClass} rounded-2xl overflow-hidden`}>
+              <div className={`flex items-center justify-between px-4 py-3 border-b ${modalBorderClass}`}>
+                <h3 className={`font-semibold ${textClass} text-sm flex items-center gap-2`}><Move size={16} /> Position cover photo (16:9)</h3>
+                <button onClick={() => setShowCoverCropper(false)} className={textLightClass}><X size={18} /></button>
               </div>
-              <div className="relative h-64 sm:h-80 bg-gray-100">
-                <Cropper
-                  image={coverImageToCrop}
-                  crop={coverCrop}
-                  zoom={coverZoom}
-                  aspect={16 / 9}
-                  onCropChange={setCoverCrop}
-                  onZoomChange={setCoverZoom}
-                  onCropComplete={onCoverCropComplete}
-                  showGrid={true}
-                />
+              <div className={`relative h-64 sm:h-80 ${cropperBgClass}`}>
+                <Cropper image={coverImageToCrop} crop={coverCrop} zoom={coverZoom} aspect={16 / 9}
+                  onCropChange={setCoverCrop} onZoomChange={setCoverZoom} onCropComplete={onCoverCropComplete} showGrid={true} />
               </div>
-              <div className="flex gap-3 p-4 border-t border-gray-200">
+              <div className={`flex gap-3 p-4 border-t ${modalBorderClass}`}>
                 <button onClick={() => setShowCoverCropper(false)}
-                  className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">
-                  Cancel
-                </button>
+                  className={`flex-1 py-2.5 border ${buttonSecondaryClass} rounded-lg text-sm transition`}>Cancel</button>
                 <button onClick={handleCoverCropSave} disabled={isSavingCoverPic}
-                  className="flex-1 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-gray-700 transition disabled:opacity-50">
+                  className={`flex-1 py-2.5 ${buttonPrimaryClass} rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition disabled:opacity-50`}>
                   {isSavingCoverPic ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : <><CheckCircle size={14} /> Apply & save</>}
                 </button>
               </div>
@@ -493,48 +529,37 @@ const UpdateProfile = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Basic Information */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <h3 className="text-sm font-semibold text-gray-700">Basic information</h3>
+        <div className={`${cardBgClass} border ${cardBorderClass} rounded-2xl overflow-hidden shadow-sm`}>
+          <div className={`px-4 py-3 border-b ${dividerClass} ${cardHeaderBgClass}`}>
+            <h3 className={`text-sm font-semibold ${textSubClass}`}>Basic information</h3>
           </div>
           <div className="p-4 space-y-3">
             <input
-              type="text"
-              name="displayName"
-              value={userData.displayName}
-              onChange={handleInputChange}
+              type="text" name="displayName" value={userData.displayName} onChange={handleInputChange}
               placeholder="Full name"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-400 transition"
+              className={`w-full px-3 py-2.5 border ${inputBorderClass} rounded-lg text-sm ${inputTextClass} ${placeholderClass} focus:outline-none transition bg-transparent`}
             />
             <div>
               <textarea
-                name="bio"
-                value={userData.bio}
-                onChange={handleInputChange}
-                rows={3}
-                maxLength={200}
-                placeholder="Tell us about yourself…"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-400 transition resize-none"
+                name="bio" value={userData.bio} onChange={handleInputChange}
+                rows={3} maxLength={200} placeholder="Tell us about yourself…"
+                className={`w-full px-3 py-2.5 border ${inputBorderClass} rounded-lg text-sm ${inputTextClass} ${placeholderClass} focus:outline-none transition resize-none bg-transparent`}
               />
-              <p className="text-xs text-gray-400 text-right mt-1">{userData.bio.length}/200</p>
+              <p className={`text-xs ${textLightClass} text-right mt-1`}>{userData.bio.length}/200</p>
             </div>
             <input
-              type="text"
-              name="location"
-              value={userData.location}
-              onChange={handleInputChange}
+              type="text" name="location" value={userData.location} onChange={handleInputChange}
               placeholder="City, Country"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-400 transition"
+              className={`w-full px-3 py-2.5 border ${inputBorderClass} rounded-lg text-sm ${inputTextClass} ${placeholderClass} focus:outline-none transition bg-transparent`}
             />
             {/* Phone with prefix */}
             <div>
-              <div className="flex border border-gray-200 rounded-lg overflow-hidden focus-within:border-gray-400 transition">
-                <span className="px-3 py-2.5 text-sm text-gray-500 bg-gray-50 border-r border-gray-200 whitespace-nowrap">
+              <div className={`flex border ${inputBorderClass} rounded-lg overflow-hidden focus-within:border-gray-400 transition`}>
+                <span className={`px-3 py-2.5 text-sm ${textSubClass} bg-transparent border-r ${dividerClass} whitespace-nowrap`}>
                   🇵🇭 +63
                 </span>
                 <input
-                  type="tel"
-                  name="phoneNumber"
+                  type="tel" name="phoneNumber"
                   value={userData.phoneNumber.replace(/^\+63/, '')}
                   onChange={(e) => {
                     let value = e.target.value.replace(/[^\d]/g, '');
@@ -542,56 +567,65 @@ const UpdateProfile = () => {
                     setUserData(prev => ({ ...prev, phoneNumber: value ? `+63${value}` : '' }));
                   }}
                   placeholder="912 345 6789"
-                  className="flex-1 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none bg-white"
+                  className={`flex-1 px-3 py-2.5 text-sm ${inputTextClass} ${placeholderClass} focus:outline-none bg-transparent`}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Enter 10-digit mobile number</p>
+              <p className={`text-xs ${textLightClass} mt-1`}>Enter 10-digit mobile number</p>
             </div>
           </div>
         </div>
 
         {/* Professional Information */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <h3 className="text-sm font-semibold text-gray-700">Professional information</h3>
+        <div className={`${cardBgClass} border ${cardBorderClass} rounded-2xl overflow-hidden shadow-sm`}>
+          <div className={`px-4 py-3 border-b ${dividerClass} ${cardHeaderBgClass}`}>
+            <h3 className={`text-sm font-semibold ${textSubClass}`}>Professional information</h3>
           </div>
           <div className="p-4 space-y-3">
             <div className="relative">
-              <select
-                name="occupation"
-                value={userData.occupation}
-                onChange={handleInputChange}
-                className="w-full appearance-none px-3 py-2.5 pr-10 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:border-gray-400 transition bg-white cursor-pointer"
-              >
-                <option value="">Select position</option>
-                {positionOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
+              {rolesLoading ? (
+                <div className={`w-full px-3 py-2.5 border ${inputBorderClass} rounded-lg text-sm ${textLightClass} flex items-center gap-2 bg-transparent`}>
+                  <Loader2 size={14} className="animate-spin" /> Loading roles…
+                </div>
+              ) : (
+                <select
+                  name="occupation" value={userData.occupation} onChange={handleInputChange}
+                  className={`w-full appearance-none px-3 py-2.5 pr-10 border ${inputBorderClass} rounded-lg text-sm ${inputTextClass} focus:outline-none transition bg-transparent cursor-pointer`}
+                >
+                  <option value="">Select position</option>
+                  {positionOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              )}
+              {!rolesLoading && (
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={textLightClass}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+              )}
             </div>
+
+            {!rolesLoading && userData.occupation && !positionOptions.find(o => o.value === userData.occupation) && (
+              <p className={`text-xs ${badgeClass} rounded-lg px-3 py-2 border`}>
+                Your current position "{userData.occupation}" is no longer in the available roles. Please select a new one.
+              </p>
+            )}
+
             <textarea
-              name="skills"
-              value={userData.skills}
-              onChange={handleInputChange}
-              rows={3}
-              placeholder="Skills & expertise (separate with commas)"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-400 transition resize-none"
+              name="skills" value={userData.skills} onChange={handleInputChange}
+              rows={3} placeholder="Skills & expertise (separate with commas)"
+              className={`w-full px-3 py-2.5 border ${inputBorderClass} rounded-lg text-sm ${inputTextClass} ${placeholderClass} focus:outline-none transition resize-none bg-transparent`}
             />
           </div>
         </div>
 
         {/* Social Links */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-700">Social links</h3>
-            <button
-              type="button"
-              onClick={addSocialLink}
-              className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-600 hover:border-gray-300 hover:text-gray-900 transition"
-            >
+        <div className={`${cardBgClass} border ${cardBorderClass} rounded-2xl overflow-hidden shadow-sm`}>
+          <div className={`px-4 py-3 border-b ${dividerClass} ${cardHeaderBgClass} flex items-center justify-between`}>
+            <h3 className={`text-sm font-semibold ${textSubClass}`}>Social links</h3>
+            <button type="button" onClick={addSocialLink}
+              className={`flex items-center gap-1 px-3 py-1.5 ${cardBgClass} border ${cardBorderClass} rounded-lg text-xs ${textSubClass} hover:border-gray-400 transition`}>
               <Plus size={12} /> Add link
             </button>
           </div>
@@ -599,18 +633,14 @@ const UpdateProfile = () => {
             {socialLinks.map((link) => (
               <div key={link.id} className="flex gap-2">
                 <input
-                  type="url"
-                  value={link.url}
+                  type="url" value={link.url}
                   onChange={(e) => handleSocialLinkChange(link.id, e.target.value)}
                   placeholder="https://…"
-                  className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-400 transition"
+                  className={`flex-1 px-3 py-2.5 border ${inputBorderClass} rounded-lg text-sm ${inputTextClass} ${placeholderClass} focus:outline-none transition bg-transparent`}
                 />
                 {socialLinks.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeSocialLink(link.id)}
-                    className="px-3 py-2.5 border border-red-100 bg-red-50 rounded-lg text-red-400 hover:text-red-600 hover:border-red-200 transition"
-                  >
+                  <button type="button" onClick={() => removeSocialLink(link.id)}
+                    className={`px-3 py-2.5 border ${darkMode ? 'border-red-800 bg-red-900/20 text-red-400 hover:text-red-300' : 'border-red-100 bg-red-50 text-red-400 hover:text-red-600'} rounded-lg transition`}>
                     <Trash2 size={15} />
                   </button>
                 )}
@@ -627,7 +657,7 @@ const UpdateProfile = () => {
             { icon: <Smartphone size={13} />, label: 'Universal' },
             { icon: <Cpu size={13} />, label: 'Real-time' },
           ].map((item, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-xs text-gray-400">
+            <div key={i} className={`flex items-center gap-1.5 text-xs ${textLightClass}`}>
               {item.icon} {item.label}
             </div>
           ))}
@@ -637,40 +667,28 @@ const UpdateProfile = () => {
         <AnimatePresence>
           {saving && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${uploadProgress}%` }}
-                  className="h-full bg-gray-900 rounded-full"
-                />
+              <div className={`h-1.5 ${progressBarBgClass} rounded-full overflow-hidden`}>
+                <motion.div initial={{ width: 0 }} animate={{ width: `${uploadProgress}%` }} className={`h-full ${progressBarFillClass} rounded-full`} />
               </div>
-              <p className="text-xs text-gray-400 text-center mt-2">Saving profile…</p>
+              <p className={`text-xs ${textLightClass} text-center mt-2`}>Saving profile…</p>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Action buttons */}
         <div className="flex gap-3 pb-6">
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition"
-          >
+          <button type="button" onClick={() => navigate('/')}
+            className={`flex-1 py-3 border ${buttonSecondaryClass} rounded-xl text-sm font-semibold transition`}>
             Cancel
           </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-gray-700 transition disabled:opacity-50"
-          >
-            {saving
-              ? <><Loader2 size={15} className="animate-spin" /> Saving…</>
-              : <><Save size={15} /> Save profile</>}
+          <button type="submit" disabled={saving}
+            className={`flex-1 py-3 ${buttonPrimaryClass} rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition disabled:opacity-50`}>
+            {saving ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : <><Save size={15} /> Save profile</>}
           </button>
         </div>
       </form>
 
-      <div className="text-center text-xs text-gray-400 pb-6">
+      <div className={`text-center text-xs ${textLightClass} pb-6`}>
         © 2026 e-CARD · NFC Digital Business Card Platform · City College of Calamba
       </div>
     </div>

@@ -1,4 +1,4 @@
-// src/user/pages/Login.jsx - RESPECTS STATUS
+// src/user/pages/Login.jsx - RESPECTS ALL STATUSES
 
 import { useState, useEffect } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -35,11 +35,26 @@ function Login() {
 
           if (userDoc.exists()) {
             const status = userDoc.data()?.accountStatus;
-            // RESPECT STATUS: approved goes to home, anything else goes to pending
-            if (status === 'approved') {
-              navigate('/home', { replace: true });
-            } else {
-              navigate('/pending', { replace: true });
+            
+            // Route based on account status
+            switch(status) {
+              case 'approved':
+                navigate('/home', { replace: true });
+                break;
+              case 'pending':
+                navigate('/pending', { replace: true });
+                break;
+              case 'rejected':
+                navigate('/rejected', { replace: true });
+                break;
+              case 'deleted':
+                // Sign out and redirect to login with deleted flag
+                await signOut(auth);
+                navigate('/login?deleted=true', { replace: true });
+                break;
+              default:
+                // Unknown status, treat as pending
+                navigate('/pending', { replace: true });
             }
             return;
           } else {
@@ -94,11 +109,25 @@ function Login() {
         console.log('User created successfully');
         return { success: true, status: 'pending' };
       } else {
+        const status = userDoc.data()?.accountStatus;
+        
+        // If account is deleted or rejected, prevent login
+        if (status === 'deleted') {
+          await signOut(auth);
+          return { success: false, error: 'Account has been deleted.', status: 'deleted' };
+        }
+        
+        if (status === 'rejected') {
+          await signOut(auth);
+          return { success: false, error: 'Account has been rejected.', status: 'rejected' };
+        }
+        
+        // Update last login for active/pending accounts
         await updateDoc(userRef, {
           lastLoginAt: new Date().toISOString(),
-          isActive: true,
+          isActive: status !== 'pending',
         });
-        const status = userDoc.data()?.accountStatus;
+        
         return { success: true, status: status || 'pending' };
       }
     } catch (error) {
@@ -128,16 +157,35 @@ function Login() {
 
       if (!saveResult.success) {
         await signOut(auth);
-        setError(saveResult.error || 'Failed to create account. Please try again.');
+        
+        // Show specific error message based on status
+        if (saveResult.status === 'deleted') {
+          setError('Your account has been deleted. Please contact the administrator.');
+          navigate('/login?deleted=true', { replace: true });
+        } else if (saveResult.status === 'rejected') {
+          setError('Your account application was rejected. Please contact the administrator for more information.');
+          navigate('/login?rejected=true', { replace: true });
+        } else {
+          setError(saveResult.error || 'Failed to create account. Please try again.');
+        }
+        
         setLoading(false);
         return;
       }
 
-      // RESPECT STATUS: Route based on account status
-      if (saveResult.status === 'approved') {
-        navigate('/home', { replace: true });
-      } else {
-        navigate('/pending', { replace: true });
+      // Route based on account status
+      switch(saveResult.status) {
+        case 'approved':
+          navigate('/home', { replace: true });
+          break;
+        case 'pending':
+          navigate('/pending', { replace: true });
+          break;
+        case 'rejected':
+          navigate('/rejected', { replace: true });
+          break;
+        default:
+          navigate('/pending', { replace: true });
       }
 
     } catch (err) {
