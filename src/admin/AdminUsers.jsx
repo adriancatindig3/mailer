@@ -140,7 +140,7 @@ const AdminUsers = ({ users, loading, darkMode, T, onRefresh, currentUser, dynam
     alignItems: 'center',
     gap: '0.3rem',
     padding: '0.3rem 0.7rem',
-    borderRadius: '0.375rem',
+    borderRadius: '2rem0.375rem',
     fontSize: '0.7rem',
     fontWeight: 700,
     cursor: 'pointer',
@@ -149,10 +149,10 @@ const AdminUsers = ({ users, loading, darkMode, T, onRefresh, currentUser, dynam
     border: 'none',
     transition: 'opacity 0.15s, transform 0.1s',
   };
-
-  const approveBtn = { ...actionBtnBase, background: '#22c55e', color: '#ffffff', border: '1px solid #16a34a' };
-  const rejectBtn  = { ...actionBtnBase, background: '#ef4444', color: '#ffffff', border: '1px solid #dc2626' };
-  const deleteBtn  = { ...actionBtnBase, background: '#ef4444', color: '#ffffff', border: '1px solid #dc2626' };
+// AFTER
+const approveBtn = { ...actionBtnBase, background: '#22c55e', color: '#ffffff', border: '1px solid #16a34a', borderRadius: '2rem', padding: '0.3rem 0.875rem', fontSize: '0.68rem', letterSpacing: '0.03em' };
+const rejectBtn  = { ...actionBtnBase, background: '#ef4444', color: '#ffffff', border: '1px solid #dc2626', borderRadius: '2rem', padding: '0.3rem 0.875rem', fontSize: '0.68rem', letterSpacing: '0.03em' };
+const deleteBtn  = { ...actionBtnBase, background: '#ef4444', color: '#ffffff', border: '1px solid #dc2626', borderRadius: '2rem', padding: '0.3rem 0.875rem', fontSize: '0.68rem', letterSpacing: '0.03em' };
 
   // Mobile card for each user
   const MobileUserCard = ({ u }) => {

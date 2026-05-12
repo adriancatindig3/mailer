@@ -24,11 +24,11 @@ const DonutChart = ({ segments, size = 140, stroke = 22, darkMode }) => {
   const mainLabel = segments.find(s => s.main)?.label ?? 'Total';
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0, margin: '0 auto' }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         {/* Track */}
         <circle cx={cx} cy={cy} r={r} fill="none"
-          stroke={darkMode ? '#374151' : '#f1f5f9'} strokeWidth={stroke} />
+          stroke={darkMode ? '#374151' : '#e5e7eb'} strokeWidth={stroke} />
         {/* Segments */}
         {slices.map((s, i) => (
           <circle key={i} cx={cx} cy={cy} r={r} fill="none"
@@ -74,18 +74,17 @@ const HBar = ({ label, value, max, color, darkMode, rank }) => {
         width: 90, flexShrink: 0,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>{label}</span>
-      <div style={{ flex: 1, height: 8, borderRadius: 4, background: darkMode ? '#374151' : '#f1f5f9', overflow: 'hidden' }}>
+      <div style={{ flex: 1, height: 8, borderRadius: 4, background: darkMode ? '#374151' : '#e5e7eb', overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: 4,
           width: `${width}%`,
           background: color,
           transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
-          boxShadow: `0 0 8px ${color}55`,
         }} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: 800, color, width: 28, textAlign: 'right' }}>{value}</span>
-        <span style={{ fontSize: '0.6rem', color: darkMode ? '#4b5563' : '#d1d5db', width: 30 }}>{pct}%</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: darkMode ? '#f9fafb' : '#374151', width: 28, textAlign: 'right' }}>{value}</span>
+        <span style={{ fontSize: '0.6rem', color: darkMode ? '#4b5563' : '#9ca3af', width: 30 }}>{pct}%</span>
       </div>
     </div>
   );
@@ -112,7 +111,7 @@ const LayoutTile = ({ num, value, max, color, darkMode, rank }) => {
       <div style={{
         width: 28, height: 28, borderRadius: '0.375rem', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: `${color}22`, border: `1px solid ${color}44`,
+        background: `${color}15`, border: `1px solid ${color}30`,
         fontSize: '0.65rem', fontWeight: 800, color,
       }}>L{num}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -132,20 +131,18 @@ const LayoutTile = ({ num, value, max, color, darkMode, rank }) => {
   );
 };
 
-// ── Stat pill ─────────────────────────────────────────────────────────────────
+// ── Stat pill (clean version - no colored background) ────────────────────────
 const StatPill = ({ label, value, color, darkMode }) => (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '0.625rem 0.875rem',
-    borderRadius: '0.625rem',
-    background: `${color}12`,
-    border: `1px solid ${color}30`,
+    padding: '0.5rem 0',
+    borderBottom: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
   }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}` }} />
+      <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
       <span style={{ fontSize: '0.75rem', color: darkMode ? '#9ca3af' : '#6b7280', fontWeight: 500 }}>{label}</span>
     </div>
-    <span style={{ fontSize: '1rem', fontWeight: 800, color }}>{value}</span>
+    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: darkMode ? '#f9fafb' : '#1f2937' }}>{value}</span>
   </div>
 );
 
@@ -192,14 +189,6 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
 
   const layoutColors = [C.blue, C.purple, C.cyan, C.orange, C.pink, C.teal, C.green, C.yellow, C.red];
 
-  // Donut segments for account status
-  const statusSegments = [
-    { label: 'Approved', value: stats.approved, color: C.green,  total: stats.total, main: true },
-    { label: 'Pending',  value: stats.pending,  color: C.yellow, total: stats.total },
-    { label: 'Rejected', value: stats.rejected, color: C.red,    total: stats.total },
-  ].filter(s => s.value > 0);
-  if (statusSegments.length === 0) statusSegments.push({ label: 'No data', value: 1, color: darkMode ? '#374151' : '#e5e7eb', total: 1 });
-
   // Top layout
   const topLayout = [1,2,3,4,5,6,7,8,9].reduce((best, l) => (layoutCounts[l] || 0) > (layoutCounts[best] || 0) ? l : best, 1);
 
@@ -223,7 +212,7 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
               { label: 'Rejected', value: stats.rejected, color: C.red,    total: stats.total },
             ]}
           />
-          <div style={{ flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ flex: 1, minWidth: 120 }}>
             <StatPill label="Approved" value={stats.approved} color={C.green}  darkMode={darkMode} />
             <StatPill label="Pending"  value={stats.pending}  color={C.yellow} darkMode={darkMode} />
             <StatPill label="Rejected" value={stats.rejected} color={C.red}    darkMode={darkMode} />
@@ -234,19 +223,18 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
         <div style={{
           marginTop: '1rem', padding: '0.75rem',
           borderRadius: '0.625rem',
-          background: `${C.green}10`,
-          border: `1px solid ${C.green}25`,
+          background: darkMode ? '#111827' : '#f8fafc',
+          border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
             <span style={{ fontSize: '0.7rem', color: darkMode ? '#9ca3af' : '#6b7280', fontWeight: 500 }}>Approval Rate</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: C.green }}>{approvalRate}%</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: darkMode ? '#f9fafb' : '#1f2937' }}>{approvalRate}%</span>
           </div>
           <div style={{ height: 6, borderRadius: 3, background: darkMode ? '#374151' : '#e5e7eb', overflow: 'hidden' }}>
             <div style={{
               height: '100%', borderRadius: 3, background: C.green,
               width: `${approvalRate}%`,
               transition: 'width 1s cubic-bezier(0.4,0,0.2,1) 0.3s',
-              boxShadow: `0 0 10px ${C.green}66`,
             }} />
           </div>
         </div>
@@ -273,7 +261,7 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
                 sum + users.filter(u => u.occupation?.toLowerCase().replace(/\s+/g, '-') === r.value).length, 0);
               const other = stats.total - assigned;
               return other > 0 ? (
-                <HBar label="Other" value={other} max={stats.total} color={darkMode ? '#4b5563' : '#d1d5db'} darkMode={darkMode} rank={dynamicRoles.length} />
+                <HBar label="Other" value={other} max={stats.total} color={darkMode ? '#6b7280' : '#9ca3af'} darkMode={darkMode} rank={dynamicRoles.length} />
               ) : null;
             })()}
           </>
@@ -293,7 +281,7 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
           border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
         }}>
           <span style={{ fontSize: '0.7rem', color: darkMode ? '#6b7280' : '#9ca3af', fontWeight: 500 }}>Total registered</span>
-          <span style={{ fontSize: '1rem', fontWeight: 800, color: darkMode ? '#f9fafb' : '#111827' }}>{stats.total}</span>
+          <span style={{ fontSize: '1rem', fontWeight: 800, color: darkMode ? '#f9fafb' : '#1f2937' }}>{stats.total}</span>
         </div>
       </Card>
 
@@ -302,7 +290,7 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
         <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{
             padding: '0.2rem 0.625rem', borderRadius: '2rem', fontSize: '0.65rem', fontWeight: 700,
-            background: `${C.purple}20`, border: `1px solid ${C.purple}40`, color: C.purple,
+            background: `${C.purple}10`, border: `1px solid ${C.purple}25`, color: C.purple,
           }}>
             🏆 Layout {topLayout} most popular
           </div>
@@ -326,7 +314,7 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
         </div>
       </Card>
 
-      {/* ── Quick Insights — full width on mobile, spans on larger ── */}
+      {/* ── Quick Insights — clean numbers, no color chaos ── */}
       <Card title="Quick Insights" accent={C.cyan} darkMode={darkMode} fullSpan>
         <div style={{
           display: 'grid',
@@ -334,12 +322,12 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
           gap: '0.625rem',
         }}>
           {[
-            { label: 'Total Users',    value: stats.total,               color: C.blue   },
-            { label: 'Active',         value: stats.approved,            color: C.green  },
-            { label: 'Pending Review', value: stats.pending,             color: C.yellow },
-            { label: 'Rejected',       value: stats.rejected,            color: C.red    },
-            { label: 'Approval Rate',  value: `${approvalRate}%`,        color: C.green  },
-            { label: 'Roles Defined',  value: dynamicRoles.length,       color: C.purple },
+            { label: 'Total Users',    value: stats.total,               color: darkMode ? '#f9fafb' : '#1f2937' },
+            { label: 'Active',         value: stats.approved,            color: darkMode ? '#f9fafb' : '#1f2937' },
+            { label: 'Pending Review', value: stats.pending,             color: darkMode ? '#f9fafb' : '#1f2937' },
+            { label: 'Rejected',       value: stats.rejected,            color: darkMode ? '#f9fafb' : '#1f2937' },
+            { label: 'Approval Rate',  value: `${approvalRate}%`,        color: darkMode ? '#f9fafb' : '#1f2937' },
+            { label: 'Roles Defined',  value: dynamicRoles.length,       color: darkMode ? '#f9fafb' : '#1f2937' },
           ].map(item => (
             <div key={item.label} style={{
               padding: '0.875rem',
@@ -351,11 +339,10 @@ const AdminAnalytics = ({ stats, users, darkMode, T, dynamicRoles }) => {
               <div style={{
                 fontSize: '1.625rem', fontWeight: 800, color: item.color,
                 lineHeight: 1, marginBottom: '0.3rem',
-                textShadow: `0 0 20px ${item.color}44`,
               }}>{item.value}</div>
               <div style={{
                 fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.05em',
-                textTransform: 'uppercase', color: darkMode ? '#4b5563' : '#9ca3af',
+                textTransform: 'uppercase', color: darkMode ? '#6b7280' : '#9ca3af',
               }}>{item.label}</div>
             </div>
           ))}
