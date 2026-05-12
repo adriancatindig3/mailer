@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, setDoc, collection, getDocs, query, orderBy, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadImage } from '../config/cloudinary';
-import { logAdminAction } from './adminHelpers';
-import { Upload, Trash2, Plus, Edit2, Save, X, Loader2, AlertCircle, CheckCircle, ImageIcon } from 'lucide-react';
+import { logAdminAction, ACTION_LOG_CONFIG } from './adminHelpers';
+import { Upload, Trash2, Plus, Edit2, Save, X, Loader2, AlertCircle, CheckCircle, ImageIcon, Download, Users } from 'lucide-react';
 
 const AdminSettings = ({ darkMode, T, currentUser }) => {
   const [schoolLogoURL, setSchoolLogoURL] = useState('');
@@ -23,6 +23,8 @@ const AdminSettings = ({ darkMode, T, currentUser }) => {
   const [editingRoleLabel, setEditingRoleLabel] = useState('');
   const [editingRoleColor, setEditingRoleColor] = useState('');
   const [deletingRoleId, setDeletingRoleId] = useState(null);
+  const [downloadingLogs, setDownloadingLogs] = useState(false);
+  const [downloadingUsers, setDownloadingUsers] = useState(false);
 
   const cardBgClass     = darkMode ? 'bg-gray-800' : 'bg-white';
   const cardBorderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
@@ -150,8 +152,248 @@ const AdminSettings = ({ darkMode, T, currentUser }) => {
     finally { setDeletingRoleId(null); }
   };
 
+  const handleDownloadLogs = async () => {
+    setDownloadingLogs(true);
+    try {
+      const logsRef = collection(db, 'adminLogs');
+      const logsQuery = query(logsRef, orderBy('timestamp', 'desc'));
+      const logsSnap = await getDocs(logsQuery);
+      
+      const logsData = logsSnap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          timestampFormatted: data.timestamp ? new Date(data.timestamp.seconds ? data.timestamp.seconds * 1000 : data.timestamp).toLocaleString() : 'N/A',
+        };
+      });
+
+      if (logsData.length === 0) {
+        setRoleError('No logs found to download.');
+        setTimeout(() => setRoleError(''), 3000);
+        return;
+      }
+
+      const htmlContent = generateStyledLogsHTML(logsData);
+      const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      const filename = `admin_logs_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xls`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      await logAdminAction(currentUser?.email, 'EXPORT_LOGS', null, `Exported admin logs`, { adminName: currentUser?.displayName });
+      setRoleSuccess('Logs exported successfully!');
+      setTimeout(() => setRoleSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error downloading logs:', error);
+      setRoleError('Failed to download logs: ' + error.message);
+      setTimeout(() => setRoleError(''), 3000);
+    } finally {
+      setDownloadingLogs(false);
+    }
+  };
+
+  const handleDownloadUsers = async () => {
+    setDownloadingUsers(true);
+    try {
+      const usersRef = collection(db, 'users');
+      const usersSnap = await getDocs(usersRef);
+      
+      const usersData = [];
+      
+      for (const docSnap of usersSnap.docs) {
+        const data = docSnap.data();
+        // Skip admin users
+        if (data.accountType === 'admin') continue;
+        
+        usersData.push({
+          'User ID': docSnap.id,
+          'Name': data.displayName || 'N/A',
+          'Email': data.email || 'N/A',
+          'Role': data.occupation || 'N/A',
+          'Company': data.company || 'N/A',
+          'Phone Number': data.phoneNumber || 'N/A',
+          'Bio': data.bio || 'N/A',
+          'Skills': data.skills || 'N/A',
+          'Account Status': data.accountStatus || 'pending',
+          'Account Type': data.accountType || 'user',
+          'Selected Layout': data.selectedLayout || 1,
+          'Created At': data.createdAt ? new Date(data.createdAt).toLocaleString() : 'N/A',
+          'Last Updated': data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : 'N/A',
+          'Profile Pic': data.photoURL || data.profilePic || 'N/A',
+        });
+      }
+
+      if (usersData.length === 0) {
+        setRoleError('No users found to export.');
+        setTimeout(() => setRoleError(''), 3000);
+        return;
+      }
+
+      const htmlContent = generateStyledUsersHTML(usersData);
+      const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      const filename = `all_users_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xls`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      await logAdminAction(currentUser?.email, 'EXPORT_USERS', null, `Exported all users data`, { adminName: currentUser?.displayName, userCount: usersData.length });
+      setRoleSuccess(`Exported ${usersData.length} users successfully!`);
+      setTimeout(() => setRoleSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error downloading users:', error);
+      setRoleError('Failed to download users: ' + error.message);
+      setTimeout(() => setRoleError(''), 3000);
+    } finally {
+      setDownloadingUsers(false);
+    }
+  };
+
+  const generateStyledLogsHTML = (logsData) => {
+    const getActionText = (action) => {
+      const cfg = ACTION_LOG_CONFIG[action];
+      return cfg?.text || action;
+    };
+    
+    const getActionColor = (action) => {
+      const cfg = ACTION_LOG_CONFIG[action];
+      return cfg?.color || '#A0AEC0';
+    };
+    
+    const getActionBg = (action) => {
+      const cfg = ACTION_LOG_CONFIG[action];
+      return cfg?.bg || '#F5F5F5';
+    };
+    
+    const getActionBorder = (action) => {
+      const cfg = ACTION_LOG_CONFIG[action];
+      return cfg?.border || '#E0E0E0';
+    };
+    
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Logs Export</title>
+  <style>
+    * { font-family: 'Arial Narrow', 'Arial', sans-serif; font-stretch: condensed; }
+    body { padding: 20px; background: white; }
+    .container { max-width: 1400px; margin: 0 auto; background: white; }
+    .header { background: #1a472a; color: white; padding: 15px 20px; margin-bottom: 20px; }
+    .header h1 { margin: 0 0 5px 0; font-size: 18px; }
+    .header p { margin: 0; opacity: 0.8; font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f2f2f2; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #333; border: 1px solid #ddd; }
+    td { padding: 10px 12px; font-size: 11px; border: 1px solid #ddd; vertical-align: top; }
+    .action-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+    .admin-email { color: #0066cc; font-weight: 600; }
+    .target-name { font-weight: 500; color: #333; }
+    .target-email { font-size: 10px; color: #666; margin-top: 2px; }
+    .details-text { color: #555; font-size: 10px; }
+    .footer { padding: 12px 20px; background: #f2f2f2; margin-top: 20px; font-size: 10px; color: #666; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>e-CARD Admin Activity Logs</h1>
+      <p>Generated on ${new Date().toLocaleString()}</p>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+        ${logsData.map(log => `
+          <tr>
+            <td style="white-space: nowrap;">${log.timestampFormatted}</td>
+            <td><div class="admin-email">${log.adminEmail || '—'}</div></td>
+            <td><span class="action-badge" style="background: ${getActionBg(log.action)}; color: ${getActionColor(log.action)}; border: 1px solid ${getActionBorder(log.action)}">${getActionText(log.action)}</span></td>
+            <td>${log.targetUserName ? `<div class="target-name">${log.targetUserName}</div>` : ''}${log.targetUserEmail ? `<div class="target-email">${log.targetUserEmail}</div>` : ''}${log.roleName ? `<div class="target-name">Role: <span style="color: ${log.roleColor || '#4299E1'}">${log.roleName}</span></div>` : ''}${!log.targetUserName && !log.targetUserEmail && !log.roleName ? '—' : ''}</td>
+            <td><div class="details-text">${log.details || '—'}</div>${log.changes ? `<div class="details-text" style="margin-top: 4px;">${log.changes}</div>` : ''}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <div class="footer"><strong>Total Records:</strong> ${logsData.length} &nbsp;|&nbsp;<strong>Export Date:</strong> ${new Date().toLocaleString()} &nbsp;|&nbsp;<strong>System:</strong> e-CARD Admin Dashboard</div>
+  </div>
+</body>
+</html>`;
+  };
+
+  const generateStyledUsersHTML = (usersData) => {
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>All Users Export</title>
+  <style>
+    * { font-family: 'Arial Narrow', 'Arial', sans-serif; font-stretch: condensed; }
+    body { padding: 20px; background: white; }
+    .container { max-width: 1400px; margin: 0 auto; background: white; }
+    .header { background: #1a472a; color: white; padding: 15px 20px; margin-bottom: 20px; }
+    .header h1 { margin: 0 0 5px 0; font-size: 18px; }
+    .header p { margin: 0; opacity: 0.8; font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f2f2f2; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #333; border: 1px solid #ddd; white-space: nowrap; }
+    td { padding: 10px 12px; font-size: 11px; border: 1px solid #ddd; vertical-align: top; }
+    .status-approved { color: #10b981; font-weight: 600; }
+    .status-pending { color: #f59e0b; font-weight: 600; }
+    .status-rejected { color: #ef4444; font-weight: 600; }
+    .footer { padding: 12px 20px; background: #f2f2f2; margin-top: 20px; font-size: 10px; color: #666; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>e-CARD All Users Data</h1>
+      <p>Generated on ${new Date().toLocaleString()}</p>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>User ID</th><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Phone Number</th><th>Bio</th><th>Skills</th><th>Account Status</th><th>Account Type</th><th>Selected Layout</th><th>Created At</th><th>Last Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${usersData.map(user => `
+          <tr>
+            <td>${user['User ID']}</td>
+            <td>${user['Name']}</td>
+            <td>${user['Email']}</td>
+            <td>${user['Role']}</td>
+            <td>${user['Company']}</td>
+            <td>${user['Phone Number']}</td>
+            <td>${user['Bio']}</td>
+            <td>${user['Skills']}</td>
+            <td class="status-${user['Account Status']}">${user['Account Status']}</td>
+            <td>${user['Account Type']}</td>
+            <td>${user['Selected Layout']}</td>
+            <td>${user['Created At']}</td>
+            <td>${user['Last Updated']}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <div class="footer"><strong>Total Users:</strong> ${usersData.length} &nbsp;|&nbsp;<strong>Export Date:</strong> ${new Date().toLocaleString()} &nbsp;|&nbsp;<strong>System:</strong> e-CARD Admin Dashboard</div>
+  </div>
+</body>
+</html>`;
+  };
+
   return (
-    // ── No max-w or mx-auto here — the parent (AdminDashboard) owns the container width ──
     <div className="space-y-4">
 
       {/* ── School Logo ─────────────────────────────────────────────────── */}
@@ -199,6 +441,54 @@ const AdminSettings = ({ darkMode, T, currentUser }) => {
                 <CheckCircle size={12} /> {schoolLogoSuccess}
               </p>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Export Data Section with 2 options ──────────────────────────────────── */}
+      <div className={`rounded-xl border ${cardBorderClass} ${cardBgClass} p-6 shadow-sm`}>
+        <h3 className={`text-xs font-bold tracking-wider ${textMutedClass} uppercase mb-4`}>Export Data</h3>
+        <div className="space-y-4">
+          {/* Option 1: Admin Logs */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-lg border ${cardBorderClass} ${darkMode ? 'bg-gray-700/20' : 'bg-gray-50'}">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <p className={`text-sm font-semibold ${textClass}`}>Admin Activity Logs</p>
+              </div>
+              <p className={`text-xs ${textMutedClass}`}>Export all admin actions, user approvals, role changes, and system activities.</p>
+            </div>
+            <button
+              onClick={handleDownloadLogs}
+              disabled={downloadingLogs}
+              className={`flex items-center justify-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-wide transition whitespace-nowrap
+                bg-green-600 hover:bg-green-700 text-white
+                ${downloadingLogs ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              {downloadingLogs ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              {downloadingLogs ? 'Exporting...' : 'Export Logs to Excel'}
+            </button>
+          </div>
+
+          {/* Option 2: All Users Data */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-lg border ${cardBorderClass} ${darkMode ? 'bg-gray-700/20' : 'bg-gray-50'}">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <p className={`text-sm font-semibold ${textClass}`}>All Users Data</p>
+              </div>
+              <p className={`text-xs ${textMutedClass}`}>Export complete user database with profiles, roles, contact info, and account status.</p>
+            </div>
+            <button
+              onClick={handleDownloadUsers}
+              disabled={downloadingUsers}
+              className={`flex items-center justify-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-wide transition whitespace-nowrap
+                bg-blue-600 hover:bg-blue-700 text-white
+                ${downloadingUsers ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              {downloadingUsers ? <Loader2 size={13} className="animate-spin" /> : <Users size={13} />}
+              {downloadingUsers ? 'Exporting...' : 'Export Users to Excel'}
+            </button>
           </div>
         </div>
       </div>
@@ -320,5 +610,3 @@ const AdminSettings = ({ darkMode, T, currentUser }) => {
 };
 
 export default AdminSettings;
-
-//main 
