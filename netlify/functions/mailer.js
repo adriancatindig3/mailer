@@ -69,7 +69,7 @@ export const sendEmailToOwner = async (ownerEmail, ownerName, visitorEmail, visi
                             ${visitorPhone ? `
                             <tr>
                               <td style="font-size: 13px; color: #666; font-weight: 600;">Phone:</td>
-                              <td style="font-size: 14px; color: #333;">${visitorPhone}</td>
+                              <td style="font-size: 14px; color: #333;">+63${visitorPhone}</td>
                             </tr>
                             ` : ''}
                           </table>
@@ -172,7 +172,7 @@ export const sendEmailToVisitor = async (visitorEmail, visitorName, visitorCompa
                             ${visitorPhone ? `
                             <tr>
                               <td style="font-size: 13px; color: #666; font-weight: 600;">Phone:</td>
-                              <td style="font-size: 14px; color: #333;">${visitorPhone}</td>
+                              <td style="font-size: 14px; color: #333;">+63${visitorPhone}</td>
                             </tr>
                             ` : ''}
                           </table>
