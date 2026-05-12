@@ -131,7 +131,7 @@ const AdminSettings = ({ darkMode, T, currentUser }) => {
         updatedAt: new Date().toISOString(), updatedBy: currentUser?.email || 'admin',
       });
       setRoles(prev => prev.map(r => r.id === id ? { ...r, label, value: label.toLowerCase().replace(/\s+/g, '-') } : r));
-      await logAdminAction(currentUser?.email, 'EDIT_ROLE', null, `Edited role from "${originalRole.label}" to "${label}"`, { roleName: label, changes: changes.join(', '), adminName: currentUser?.displayName });
+      await logAdminAction(currentUser?.email, 'EDIT_ROLE', null, `"${originalRole.label}" to "${label}"`, { roleName: label, changes: changes.join(', '), adminName: currentUser?.displayName });
       setEditingRoleId(null);
       setRoleSuccess('Role updated!');
       setTimeout(() => setRoleSuccess(''), 2000);

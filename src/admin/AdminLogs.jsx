@@ -25,6 +25,25 @@ const AdminLogs = ({ darkMode, T }) => {
   const emailClass = darkMode ? 'text-blue-400'  : 'text-blue-600';
   const spinClass  = darkMode ? 'border-gray-700 border-t-white' : 'border-gray-200 border-t-gray-900';
 
+  // Add config for EXPORT_LOGS and EXPORT_USERS
+  const extendedActionConfig = {
+    ...ACTION_LOG_CONFIG,
+    EXPORT_LOGS: {
+      color: '#10B981',
+      bg: 'rgba(16,185,129,0.1)',
+      border: 'rgba(16,185,129,0.2)',
+      icon: '📊',
+      text: 'Export Logs'
+    },
+    EXPORT_USERS: {
+      color: '#3B82F6',
+      bg: 'rgba(59,130,246,0.1)',
+      border: 'rgba(59,130,246,0.2)',
+      icon: '👥',
+      text: 'Export Users'
+    }
+  };
+
   const fetchAllLogs = async () => {
     try {
       setLogsLoading(true);
@@ -109,14 +128,12 @@ const AdminLogs = ({ darkMode, T }) => {
                 <option value="REJECT">Rejected User</option>
                 <option value="DELETE">Deleted User</option>
                 <option value="UPDATE_LOGO">Updated Logo</option>
-                <option value="UPDATE_SETTINGS">Updated Settings</option>
+                {/* <option value="UPDATE_SETTINGS">Updated Settings</option> */}
                 <option value="ADD_ROLE">Added Role</option>
                 <option value="EDIT_ROLE">Edited Role</option>
                 <option value="DELETE_ROLE">Deleted Role</option>
-                <option value="BULK_IMPORT">Bulk Import</option>
-                <option value="EXPORT_DATA">Exported Data</option>
-                <option value="LOGIN">Admin Login</option>
-                <option value="LOGOUT">Admin Logout</option>
+                <option value="EXPORT_LOGS">Export Logs</option>    
+                <option value="EXPORT_USERS">Export Users</option>
               </select>
               <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs ${textMuted}`}>▼</div>
             </div>
@@ -159,9 +176,12 @@ const AdminLogs = ({ darkMode, T }) => {
               </thead>
               <tbody>
                 {logs.map(log => {
-                  const cfg = ACTION_LOG_CONFIG[log.action] || {
-                    color: '#A0AEC0', bg: 'rgba(160,174,192,0.08)',
-                    border: 'rgba(160,174,192,0.2)', icon: null, text: log.action,
+                  const cfg = extendedActionConfig[log.action] || {
+                    color: '#A0AEC0', 
+                    bg: 'rgba(160,174,192,0.08)',
+                    border: 'rgba(160,174,192,0.2)', 
+                    icon: null, 
+                    text: log.action,
                   };
                   return (
                     <tr key={log.id} className={`border-b ${trBorder}`}>
@@ -178,7 +198,7 @@ const AdminLogs = ({ darkMode, T }) => {
                           className="inline-flex items-center gap-1.5 text-[0.7rem] font-semibold px-3 py-1 rounded-full whitespace-nowrap"
                           style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color }}
                         >
-                          {cfg.icon}{cfg.text}
+                          {cfg.icon && <span>{cfg.icon}</span>}{cfg.text}
                         </span>
                       </td>
                       <td className="py-3.5 px-5">
@@ -197,6 +217,9 @@ const AdminLogs = ({ darkMode, T }) => {
                         <span className={`text-[0.75rem] ${textMuted}`}>{log.details || '—'}</span>
                         {log.changes && (
                           <div className={`text-[0.65rem] ${textMuted} mt-1 font-mono`}>{log.changes}</div>
+                        )}
+                        {log.userCount && (
+                          <div className={`text-[0.65rem] ${textMuted} mt-1`}>Users: {log.userCount}</div>
                         )}
                       </td>
                     </tr>
@@ -221,5 +244,3 @@ const AdminLogs = ({ darkMode, T }) => {
 };
 
 export default AdminLogs;
-
-// main sticky 
