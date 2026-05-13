@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTheme, TABS } from './adminHelpers';
 import AdminUsers from './AdminUsers';
@@ -13,7 +13,7 @@ import {
   Moon, Sun, LogOut, Shield,
   Users, UserCheck, Briefcase, GraduationCap,
   Clock, CheckCircle, XCircle,
-  Menu, X, AlertTriangle
+  Menu, X
 } from 'lucide-react';
 
 const logo = "/e-CARD generic.png";
@@ -28,7 +28,6 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('adminActiveTab') || 'users');
   const [dynamicRoles, setDynamicRoles] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const navigate = useNavigate();
   const T = getTheme(darkMode);
@@ -85,16 +84,22 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const snap = await getDocs(query(collection(db, 'userRoles'), orderBy('createdAt', 'asc')));
-        if (!snap.empty) {
-          setDynamicRoles(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        } else {
-          setDynamicRoles([
-            { id: '1', value: 'teaching',     label: 'Teaching',     color: '#3B82F6' },
-            { id: '2', value: 'non-teaching', label: 'Non-Teaching', color: '#8B5CF6' },
-            { id: '3', value: 'alumni',       label: 'Alumni',       color: '#F59E0B' },
-          ]);
-        }
+        const q = query(collection(db, 'userRoles'), orderBy('createdAt', 'asc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          if (!snapshot.empty) {
+            setDynamicRoles(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+          } else {
+            setDynamicRoles([
+              { id: '1', value: 'teaching',     label: 'Teaching',     color: '#3B82F6' },
+              { id: '2', value: 'non-teaching', label: 'Non-Teaching', color: '#8B5CF6' },
+              { id: '3', value: 'alumni',       label: 'Alumni',       color: '#F59E0B' },
+            ]);
+          }
+        }, (error) => {
+          console.error('Error fetching roles:', error);
+        });
+        
+        return () => unsubscribe();
       } catch (e) {
         console.error(e);
       }
@@ -102,21 +107,26 @@ const AdminDashboard = () => {
     fetchRoles();
   }, []);
 
-  const fetchAllUsers = async () => {
-    try {
-      setLoading(true);
-      const snap = await getDocs(collection(db, 'users'));
+  // REAL-TIME USERS LISTENER
+  useEffect(() => {
+    if (!user) return;
+
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef);
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       let pending = 0, approved = 0, rejected = 0;
       const list = [];
       const roleCounts = {};
 
-      snap.docs.forEach(d => {
-        const data = d.data();
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        
         if (data.accountStatus === 'deleted') return;
         if (data.accountType === 'admin') return;
 
         const u = {
-          id: d.id,
+          id: doc.id,
           email: data.email || '',
           displayName: data.displayName || 'Unknown',
           photoURL: data.photoURL || data.profilePic || '',
@@ -133,10 +143,10 @@ const AdminDashboard = () => {
         };
 
         list.push(u);
-        const occ = u.occupation?.toLowerCase();
+        const occ = u.occupation?.toLowerCase().replace(/\s+/g, '-');
         if (occ) roleCounts[occ] = (roleCounts[occ] || 0) + 1;
 
-        if (u.accountStatus === 'pending')  pending++;
+        if (u.accountStatus === 'pending') pending++;
         else if (u.accountStatus === 'approved') approved++;
         else if (u.accountStatus === 'rejected') rejected++;
       });
@@ -151,12 +161,14 @@ const AdminDashboard = () => {
       setUsers(list);
       setStats({ total: list.length, pending, approved, rejected });
       setRoleStats(roleStatsArray);
-    } catch (e) {
-      console.error(e);
-    } finally {
       setLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error('Error fetching users:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, dynamicRoles]);
 
   const getRoleIcon = (roleValue) => {
     switch (roleValue) {
@@ -167,20 +179,17 @@ const AdminDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if (user) fetchAllUsers();
-  }, [user, dynamicRoles]);
+  const handleRefresh = async () => {
+    console.log('Manual refresh triggered - real-time listener will handle it');
+  };
 
-  const handleRefresh = async () => { await fetchAllUsers(); };
-
-  const handleLogoutConfirm = async () => {
+  // Direct logout - no modal
+  const handleLogout = async () => {
     try {
       await signOut(auth);
       navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
-    } finally {
-      setShowLogoutModal(false);
     }
   };
 
@@ -214,51 +223,6 @@ const AdminDashboard = () => {
 
   return (
     <div className={`min-h-screen ${bgClass}`}>
-
-      {/* ── Logout Confirmation Modal ──────────────────────────────────────── */}
-      <AnimatePresence>
-        {showLogoutModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowLogoutModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 rounded-xl shadow-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} p-6`}
-            >
-              <div className="text-center">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
-                  <AlertTriangle size={28} className={darkMode ? 'text-red-400' : 'text-red-600'} />
-                </div>
-                <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Sign Out</h3>
-                <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Are you sure you want to sign out of your admin account?
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowLogoutModal(false)}
-                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleLogoutConfirm}
-                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2 ${darkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                  >
-                    <LogOut size={14} /> Sign Out
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* ── Mobile Header ─────────────────────────────────────────────────── */}
       <div className={`md:hidden fixed top-0 left-0 right-0 ${mobileHeaderBgClass} border-b px-4 py-3 flex items-center justify-between z-40`}>
@@ -356,7 +320,7 @@ const AdminDashboard = () => {
                     <p className={`text-xs ${sidebarSubtextClass} truncate`}>{user?.email}</p>
                   </div>
                 </div>
-                <button onClick={() => setShowLogoutModal(true)} className={logoutButtonClass}>
+                <button onClick={handleLogout} className={logoutButtonClass}>
                   <LogOut size={14} /> Sign Out
                 </button>
               </div>
@@ -416,7 +380,7 @@ const AdminDashboard = () => {
               </p>
               <p className={`text-xs ${sidebarSubtextClass} truncate`}>{user?.email}</p>
             </div>
-            {/* Dark mode toggle lives here on desktop — no floating header needed */}
+            {/* Dark mode toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-1.5 rounded-lg border transition flex-shrink-0 ${themeToggleBgClass}`}
@@ -428,8 +392,8 @@ const AdminDashboard = () => {
             </button>
           </div>
 
-          {/* Sign out */}
-          <button onClick={() => setShowLogoutModal(true)} className={logoutButtonClass}>
+          {/* Sign out - direct logout, no modal */}
+          <button onClick={handleLogout} className={logoutButtonClass}>
             <LogOut size={14} /> Sign Out
           </button>
         </div>

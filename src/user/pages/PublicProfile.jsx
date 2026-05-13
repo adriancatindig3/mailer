@@ -500,59 +500,65 @@ const PublicProfile = () => {
       </div>
     </div>
   );
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LAYOUT 4 - Dark Green with Cover (from SelectLayout)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const Layout4 = () => (
-    <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
-      <div className="h-36 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a2e1a, #0f1f0f)' }}>
-        {userData?.coverPhotoURL && <img src={userData.coverPhotoURL} alt="" className="w-full h-full object-cover opacity-60" />}
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYOUT 4 - Dark Green with Cover (exact from SelectLayout - NO opacity filter)
+// ═══════════════════════════════════════════════════════════════════════════
+const Layout4 = () => (
+  <div className="w-full font-['Inter'] text-white" style={{ background: 'linear-gradient(135deg, #1a2e1a 0%, #0f1f0f 100%)' }}>
+    <div className="h-36 relative overflow-hidden">
+      {userData?.coverPhotoURL ? (
+        <img src={userData.coverPhotoURL} alt="Cover" className="w-full h-full object-cover" />
+      ) : (
+        <div style={{ background: 'linear-gradient(135deg, #1a2e1a, #0f1f0f)' }} className="w-full h-full" />
+      )}
+    </div>
+    <div className="px-6 py-4 relative" style={{ background: 'linear-gradient(135deg, #1a2e1a, #0f1f0f)' }}>
+      <div className="w-20 h-20 rounded-2xl overflow-hidden absolute -top-10 left-6 border-4" style={{ borderColor: '#0f1f0f', background: '#2a3f2a' }}>
+        {userData?.photoURL ? <img src={userData.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-xl font-bold" style={{ background: '#3a5a3a' }}>{getInitials(userData?.displayName)}</div>}
       </div>
-      <div className="px-6 py-4 relative" style={{ background: 'linear-gradient(135deg, #1a2e1a, #0f1f0f)' }}>
-        <div className="w-20 h-20 rounded-2xl overflow-hidden absolute -top-10 left-6 border-4" style={{ borderColor: '#0f1f0f', background: '#2a3f2a' }}>
-          {userData?.photoURL ? <img src={userData.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-xl font-bold" style={{ background: '#3a5a3a' }}>{getInitials(userData?.displayName)}</div>}
-        </div>
-        <div className="pt-12">
-          <h1 className="text-xl font-bold text-white mb-1">{userData?.displayName}</h1>
-          {userData?.occupation && <p className="text-sm font-medium mb-1" style={{ color: 'rgba(255,255,255,0.75)' }}>{userData.occupation}</p>}
-          {userData?.company && <div className="flex items-center gap-2 text-xs mb-4" style={{ color: 'rgba(255,255,255,0.55)' }}><SchoolLogo className="w-4 h-4" style={{ opacity: 0.8 }} /><span>{userData.company}</span></div>}
-          {userData?.bio && <p className="text-sm leading-relaxed mb-4 pb-4" style={{ color: 'rgba(255,255,255,0.7)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>{userData.bio}</p>}
-          {userData?.skills && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}>{s.trim()}</span>)}</div></div>}
-          {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}><FaEnvelope style={{ color: 'rgba(255,255,255,0.5)' }} /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}><FaPhone style={{ color: 'rgba(255,255,255,0.5)' }} /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
-          {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Connect</h3><div className="flex flex-wrap gap-2">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>{getSocialIcon(p)}</a>)}</div></div>}
-          <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
-        </div>
+      <div className="pt-12">
+        <h1 className="text-xl font-bold text-white mb-1">{userData?.displayName}</h1>
+        {userData?.occupation && <p className="text-sm font-medium mb-1" style={{ color: 'rgba(255,255,255,0.75)' }}>{userData.occupation}</p>}
+        {userData?.company && <div className="flex items-center gap-2 text-xs mb-4" style={{ color: 'rgba(255,255,255,0.55)' }}><SchoolLogo className="w-4 h-4" style={{ opacity: 0.8 }} /><span>{userData.company}</span></div>}
+        {userData?.bio && <p className="text-sm leading-relaxed mb-4 pb-4" style={{ color: 'rgba(255,255,255,0.7)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>{userData.bio}</p>}
+        {userData?.skills && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}>{s.trim()}</span>)}</div></div>}
+        {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}><FaEnvelope style={{ color: 'rgba(255,255,255,0.5)' }} /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.75)' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}><FaPhone style={{ color: 'rgba(255,255,255,0.5)' }} /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
+        {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Connect</h3><div className="flex flex-wrap gap-2">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>{getSocialIcon(p)}</a>)}</div></div>}
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
       </div>
     </div>
-  );
+  </div>
+);
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LAYOUT 5 - Deep Slate Blue with Cover (from SelectLayout)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const Layout5 = () => (
-    <div className="w-full font-['Inter']" style={{ background: '#0d1b2e' }}>
-      <div className="h-36 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0d1b2e, #1a3a5c)' }}>
-        {userData?.coverPhotoURL && <img src={userData.coverPhotoURL} alt="" className="w-full h-full object-cover brightness-75" />}
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYOUT 5 - Deep Slate Blue with Cover (exact from SelectLayout - NO brightness filter)
+// ═══════════════════════════════════════════════════════════════════════════
+const Layout5 = () => (
+  <div className="w-full font-['Inter']" style={{ background: '#0d1b2e' }}>
+    <div className="h-36 relative overflow-hidden">
+      {userData?.coverPhotoURL ? (
+        <img src={userData.coverPhotoURL} alt="Cover" className="w-full h-full object-cover" />
+      ) : (
+        <div style={{ background: 'linear-gradient(135deg, #0d1b2e, #1a3a5c)' }} className="w-full h-full" />
+      )}
+    </div>
+    <div className="px-6 py-4 relative" style={{ background: '#0d1b2e' }}>
+      <div className="w-20 h-20 rounded-2xl overflow-hidden absolute -top-10 left-6" style={{ border: '4px solid #0d1b2e', background: 'linear-gradient(135deg, #1a3a5c, #0d1b2e)' }}>
+        {userData?.photoURL ? <img src={userData.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-xl font-bold" style={{ background: '#1a3a5c' }}>{getInitials(userData?.displayName)}</div>}
       </div>
-      <div className="px-6 py-4 relative" style={{ background: '#0d1b2e' }}>
-        <div className="w-20 h-20 rounded-2xl overflow-hidden absolute -top-10 left-6" style={{ border: '4px solid #0d1b2e', background: 'linear-gradient(135deg, #1a3a5c, #0d1b2e)' }}>
-          {userData?.photoURL ? <img src={userData.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-xl font-bold" style={{ background: '#1a3a5c' }}>{getInitials(userData?.displayName)}</div>}
-        </div>
-        <div className="pt-12">
-          <h1 className="text-xl font-bold text-white mb-1">{userData?.displayName}</h1>
-          {userData?.occupation && <p className="text-sm font-medium mb-1" style={{ color: '#93b4d4' }}>{userData.occupation}</p>}
-          {userData?.company && <div className="flex items-center gap-2 text-xs mb-4" style={{ color: '#5a8ab0' }}><SchoolLogo className="w-4 h-4" /><span>{userData.company}</span></div>}
-          {userData?.bio && <p className="text-sm leading-relaxed mb-4 pb-4" style={{ color: '#93b4d4', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>{userData.bio}</p>}
-          {userData?.skills && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: '#93b4d4' }}>{s.trim()}</span>)}</div></div>}
-          {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: '#93b4d4' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}><FaEnvelope style={{ color: '#5a8ab0' }} /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: '#93b4d4' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}><FaPhone style={{ color: '#5a8ab0' }} /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
-          {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Connect</h3><div className="flex flex-wrap gap-2">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)', color: '#93b4d4' }}>{getSocialIcon(p)}</a>)}</div></div>}
-          <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
-        </div>
+      <div className="pt-12">
+        <h1 className="text-xl font-bold text-white mb-1">{userData?.displayName}</h1>
+        {userData?.occupation && <p className="text-sm font-medium mb-1" style={{ color: '#93b4d4' }}>{userData.occupation}</p>}
+        {userData?.company && <div className="flex items-center gap-2 text-xs mb-4" style={{ color: '#5a8ab0' }}><SchoolLogo className="w-4 h-4" /><span>{userData.company}</span></div>}
+        {userData?.bio && <p className="text-sm leading-relaxed mb-4 pb-4" style={{ color: '#93b4d4', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>{userData.bio}</p>}
+        {userData?.skills && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Expertise</h3><div className="flex flex-wrap gap-2">{userData.skills.split(',').slice(0, 6).map((s, i) => <span key={i} className="px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: '#93b4d4' }}>{s.trim()}</span>)}</div></div>}
+        {(userData?.email || userData?.phoneNumber) && <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Contact</h3><div className="space-y-2">{userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 text-sm" style={{ color: '#93b4d4' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}><FaEnvelope style={{ color: '#5a8ab0' }} /></div><span>{userData.email}</span></a>}{userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 text-sm" style={{ color: '#93b4d4' }}><div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}><FaPhone style={{ color: '#5a8ab0' }} /></div><span>{userData.phoneNumber}</span></a>}</div></div>}
+        {Object.entries(userData?.socialLinks || {}).some(([, v]) => v) && <div><h3 className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#5a8ab0' }}>Connect</h3><div className="flex flex-wrap gap-2">{Object.entries(userData.socialLinks).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)', color: '#93b4d4' }}>{getSocialIcon(p)}</a>)}</div></div>}
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
       </div>
     </div>
-  );
-
+  </div>
+);
   // ═══════════════════════════════════════════════════════════════════════════
   // LAYOUT 6 - Clean White with Cover (from SelectLayout)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -714,45 +720,135 @@ const PublicProfile = () => {
 
   const SelectedLayout = layoutComponents[userData.selectedLayout] || Layout1;
 
-  return (
-    <>
-      <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(30px) scale(0.95); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .animate-slideUp { animation: slideUp 0.3s ease-out forwards; }
-      `}</style>
+  // return (
 
-      <FloatingConnectForm
-        showConnectForm={showConnectForm}
-        setShowConnectForm={setShowConnectForm}
-        userData={userData}
-        connectName={connectName}
-        setConnectName={setConnectName}
-        connectEmail={connectEmail}
-        setConnectEmail={setConnectEmail}
-        connectCompany={connectCompany}
-        setConnectCompany={setConnectCompany}
-        connectPhone={connectPhone}
-        setConnectPhone={setConnectPhone}
-        message={message}
-        setMessage={setMessage}
-        handleConnectSubmit={handleConnectSubmit}
-        isSending={isSending}
-        sendSuccess={sendSuccess}
-        sendError={sendError}
-        darkMode={userData.selectedLayout !== 3}
-      />
+  //   <>
+  //     <style>{`
+  //       @keyframes slideUp {
+  //         from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  //         to   { opacity: 1; transform: translateY(0) scale(1); }
+  //       }
+  //       .animate-slideUp { animation: slideUp 0.3s ease-out forwards; }
+  //     `}</style>
 
-      {/* Removed the outer padding and made it full width with no gaps */}
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-full max-w-md">
+  //     <FloatingConnectForm
+  //       showConnectForm={showConnectForm}
+  //       setShowConnectForm={setShowConnectForm}
+  //       userData={userData}
+  //       connectName={connectName}
+  //       setConnectName={setConnectName}
+  //       connectEmail={connectEmail}
+  //       setConnectEmail={setConnectEmail}
+  //       connectCompany={connectCompany}
+  //       setConnectCompany={setConnectCompany}
+  //       connectPhone={connectPhone}
+  //       setConnectPhone={setConnectPhone}
+  //       message={message}
+  //       setMessage={setMessage}
+  //       handleConnectSubmit={handleConnectSubmit}
+  //       isSending={isSending}
+  //       sendSuccess={sendSuccess}
+  //       sendError={sendError}
+  //       darkMode={userData.selectedLayout !== 3}
+  //     />
+
+  //     {/* Removed the outer padding and made it full width with no gaps */}
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       <div className="w-full max-w-md">
+  //         <SelectedLayout />
+  //       </div>
+  //     </div>
+  //   </>
+  // );
+
+
+  // Update the return section at the bottom of PublicProfile component:
+
+return (
+  <>
+    <style>{`
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px) scale(0.95); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .animate-slideUp { animation: slideUp 0.3s ease-out forwards; }
+    `}</style>
+
+    <FloatingConnectForm
+      showConnectForm={showConnectForm}
+      setShowConnectForm={setShowConnectForm}
+      userData={userData}
+      connectName={connectName}
+      setConnectName={setConnectName}
+      connectEmail={connectEmail}
+      setConnectEmail={setConnectEmail}
+      connectCompany={connectCompany}
+      setConnectCompany={setConnectCompany}
+      connectPhone={connectPhone}
+      setConnectPhone={setConnectPhone}
+      message={message}
+      setMessage={setMessage}
+      handleConnectSubmit={handleConnectSubmit}
+      isSending={isSending}
+      sendSuccess={sendSuccess}
+      sendError={sendError}
+      darkMode={userData.selectedLayout !== 3}
+    />
+
+    {/* Match SelectLayout mobile view exactly - with padding, rounded corners, and card styling */}
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="relative rounded-2xl overflow-hidden shadow-lg">
           <SelectedLayout />
         </div>
       </div>
-    </>
-  );
+    </div>
+  </>
+);// Update the return section at the bottom of PublicProfile component:
+
+return (
+  <>
+    <style>{`
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px) scale(0.95); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .animate-slideUp { animation: slideUp 0.3s ease-out forwards; }
+    `}</style>
+
+    <FloatingConnectForm
+      showConnectForm={showConnectForm}
+      setShowConnectForm={setShowConnectForm}
+      userData={userData}
+      connectName={connectName}
+      setConnectName={setConnectName}
+      connectEmail={connectEmail}
+      setConnectEmail={setConnectEmail}
+      connectCompany={connectCompany}
+      setConnectCompany={setConnectCompany}
+      connectPhone={connectPhone}
+      setConnectPhone={setConnectPhone}
+      message={message}
+      setMessage={setMessage}
+      handleConnectSubmit={handleConnectSubmit}
+      isSending={isSending}
+      sendSuccess={sendSuccess}
+      sendError={sendError}
+      darkMode={userData.selectedLayout !== 3}
+    />
+
+    {/* Match SelectLayout mobile view exactly - with padding, rounded corners, and card styling */}
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="relative rounded-2xl overflow-hidden shadow-lg">
+          <SelectedLayout />
+        </div>
+      </div>
+    </div>
+  </>
+);
 };
+
+
 
 export default PublicProfile;
