@@ -601,15 +601,15 @@ const Layout7 = () => (
         {userData?.phoneNumber && <a href={`tel:${userData.phoneNumber}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaPhone /></div><div className="flex-1"><div className="text-xs font-medium">Call me</div><div className="text-[11px] opacity-60">{userData.phoneNumber}</div></div><span className="text-xs opacity-40">↗</span></a>}
         {userData?.email && <a href={`mailto:${userData.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaEnvelope /></div><div className="flex-1"><div className="text-xs font-medium">Email me</div><div className="text-[11px] opacity-60">{userData.email}</div></div><span className="text-xs opacity-40">↗</span></a>}
         {userData?.location && (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <a href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
               <FaMapMarkerAlt />
             </div>
             <div className="flex-1">
-              <div className="text-xs font-medium">Location</div>
-              <div className="text-[11px] opacity-60">{userData.location}</div>
+              <div className="text-xs font-medium">View Location</div>
             </div>
-          </div>
+            <span className="text-xs opacity-40">↗</span>
+          </a>
         )}
         {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}><div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>{getSocialIcon(p)}</div><div className="flex-1"><div className="text-xs font-medium capitalize">Follow me</div><div className="text-[11px] opacity-60">{url.replace(/https?:\/\/(www\.)?/, '').split('/')[0]}</div></div><span className="text-xs opacity-40">↗</span></a>)}
       </div>
