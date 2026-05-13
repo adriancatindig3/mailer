@@ -525,12 +525,11 @@ const SelectLayout = ({ darkMode }) => {
         
         {/* Location */}
         {userData?.location && (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaMapMarkerAlt /></div>
-            <div className="flex-1"><div className="text-xs font-medium">Location</div><div className="text-[11px] opacity-60">{userData.location}</div></div>
-          </div>
-        )}
-        
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaMapMarkerAlt /></div>
+          <div className="flex-1"><div className="text-xs font-medium">Location</div></div>
+        </div>
+      )}
         {/* Social Links */}
         {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => (
           <a key={p} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline" style={{ background: 'rgba(255,255,255,0.08)' }}>
@@ -592,12 +591,12 @@ const SelectLayout = ({ darkMode }) => {
         )}
         
         {/* Location */}
-        {userData?.location && (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.08)' }}>
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}><FaMapMarkerAlt /></div>
-            <div className="flex-1"><div className="text-xs font-medium">Location</div><div className="text-[11px] opacity-55">{userData.location}</div></div>
-          </div>
-        )}
+       {userData?.location && (
+  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaMapMarkerAlt /></div>
+    <div className="flex-1"><div className="text-xs font-medium">Location</div></div>
+  </div>
+)}
         
         {/* Social Links */}
         {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => (
@@ -660,12 +659,12 @@ const SelectLayout = ({ darkMode }) => {
         )}
         
         {/* Location */}
-        {userData?.location && (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: '#f9fafb', border: '0.5px solid #e5e7eb' }}>
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-gray-500"><FaMapMarkerAlt className="text-white text-xs" /></div>
-            <div className="flex-1"><div className="text-xs font-medium text-gray-900">Location</div><div className="text-[11px] text-gray-500">{userData.location}</div></div>
-          </div>
-        )}
+       {userData?.location && (
+  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}><FaMapMarkerAlt /></div>
+    <div className="flex-1"><div className="text-xs font-medium">Location</div></div>
+  </div>
+)}
         
         {/* Social Links */}
         {Object.entries(userData?.socialLinks || {}).filter(([, v]) => v).map(([p, url]) => (
