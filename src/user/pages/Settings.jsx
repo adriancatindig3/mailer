@@ -150,7 +150,7 @@ function Settings({ darkMode }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
       >
-        {/* Page header */}
+        
         <div className="mb-8">
           <h1 className={`text-2xl md:text-3xl font-bold ${textClass}`}>Settings</h1>
           <p className={`${textSubClass} mt-1 text-sm`}>Manage your account preferences</p>

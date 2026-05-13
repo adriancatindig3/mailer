@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, setDoc, getDocs, collection, query, orderBy } from 'firebase/firestore';
 import { uploadImage } from '../../config/cloudinary';
 import Cropper from 'react-easy-crop';
+import { useUserRoles } from '../../shared/hooks/useUserRoles';
 import {
   ArrowLeft, Save, Camera, MapPin, Briefcase, Phone, Mail,
   User, Image as ImageIcon, Trash2, Plus, X, Check,
@@ -13,7 +14,8 @@ import {
   Move, ZoomIn, RotateCw, Crop, CheckCircle
 } from "lucide-react";
 
-const UpdateProfile = ({ darkMode }) => {
+// const UpdateProfile = ({ darkMode }) => {
+  const UpdateProfile = ({ darkMode, onSaveComplete }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userData, setUserData] = useState({
@@ -27,9 +29,6 @@ const UpdateProfile = ({ darkMode }) => {
     skills: '',
   });
 
-  // Dynamic roles from Firestore
-  const [positionOptions, setPositionOptions] = useState([]);
-  const [rolesLoading, setRolesLoading] = useState(true);
 
   const [socialLinks, setSocialLinks] = useState([{ id: Date.now(), url: '' }]);
 
@@ -95,39 +94,40 @@ const UpdateProfile = ({ darkMode }) => {
   const progressBarFillClass = darkMode ? 'bg-white' : 'bg-gray-900';
 
   // ── Load dynamic roles from Firestore ───────────────────────────────────────
-  useEffect(() => {
-    const fetchRoles = async () => {
-      setRolesLoading(true);
-      try {
-        const snap = await getDocs(query(collection(db, 'userRoles'), orderBy('createdAt', 'asc')));
-        if (snap.empty) {
-          setPositionOptions([
-            { value: 'Teaching', label: 'Teaching' },
-            { value: 'Non-Teaching', label: 'Non-Teaching' },
-            { value: 'Alumni', label: 'Alumni' },
-          ]);
-        } else {
-          setPositionOptions(
-            snap.docs.map(d => {
-              const data = d.data();
-              return { value: data.label, label: data.label, color: data.color };
-            })
-          );
-        }
-      } catch (e) {
-        console.error('Failed to load roles:', e);
-        setPositionOptions([
-          { value: 'Teaching', label: 'Teaching' },
-          { value: 'Non-Teaching', label: 'Non-Teaching' },
-          { value: 'Alumni', label: 'Alumni' },
-        ]);
-      } finally {
-        setRolesLoading(false);
-      }
-    };
-    fetchRoles();
-  }, []);
+  // useEffect(() => {
+  //   const fetchRoles = async () => {
+  //     setRolesLoading(true);
+  //     try {
+  //       const snap = await getDocs(query(collection(db, 'userRoles'), orderBy('createdAt', 'asc')));
+  //       if (snap.empty) {
+  //         setPositionOptions([
+  //           { value: 'Teaching', label: 'Teaching' },
+  //           { value: 'Non-Teaching', label: 'Non-Teaching' },
+  //           { value: 'Alumni', label: 'Alumni' },
+  //         ]);
+  //       } else {
+  //         setPositionOptions(
+  //           snap.docs.map(d => {
+  //             const data = d.data();
+  //             return { value: data.label, label: data.label, color: data.color };
+  //           })
+  //         );
+  //       }
+  //     } catch (e) {
+  //       console.error('Failed to load roles:', e);
+  //       setPositionOptions([
+  //         { value: 'Teaching', label: 'Teaching' },
+  //         { value: 'Non-Teaching', label: 'Non-Teaching' },
+  //         { value: 'Alumni', label: 'Alumni' },
+  //       ]);
+  //     } finally {
+  //       setRolesLoading(false);
+  //     }
+  //   };
+  //   fetchRoles();
+  // }, []);
 
+  const { positionOptions, rolesLoading } = useUserRoles();
   const createImage = (url) =>
     new Promise((resolve, reject) => {
       const image = new Image();
@@ -331,55 +331,138 @@ const UpdateProfile = ({ darkMode }) => {
     return /^\+63\d{10}$/.test(phone);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    if (userData.phoneNumber && !validatePhoneNumber(userData.phoneNumber)) { setError('Please enter a valid phone number (+63 followed by 10 digits)'); return; }
-    if (socialLinks.some(link => link.url && !validateUrl(link.url))) { setError('Please enter valid URLs for social links'); return; }
-    setSaving(true);
-    setUploadProgress(0);
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) { navigate('/login'); return; }
-      const socialLinksObj = {};
-      socialLinks.forEach(link => {
-        if (link.url && link.url.trim() !== '') {
-          const platform = detectPlatform(link.url);
-          let key = platform;
-          let counter = 1;
-          while (socialLinksObj[key]) { key = `${platform}${counter}`; counter++; }
-          socialLinksObj[key] = link.url;
-        }
-      });
-      const updateData = {
-        displayName: userData.displayName || '',
-        bio: userData.bio || '',
-        location: userData.location || '',
-        occupation: userData.occupation || '',
-        company: 'City College Of Calamba',
-        phoneNumber: userData.phoneNumber || '',
-        skills: userData.skills || '',
-        socialLinks: socialLinksObj,
-        updatedAt: new Date().toISOString(),
-      };
-      const userDocRef = doc(db, 'users', currentUser.uid);
-      const userDoc = await getDoc(userDocRef);
-      if (!userDoc.exists()) {
-        await setDoc(userDocRef, { ...updateData, email: currentUser.email || '', createdAt: new Date().toISOString(), uid: currentUser.uid, photoURL: currentPhotoURL, profilePic: currentPhotoURL, coverPhotoURL: currentCoverURL, coverPhoto: currentCoverURL });
-      } else {
-        await updateDoc(userDocRef, updateData);
-      }
-      setUploadProgress(100);
-      setSuccess('Profile information saved successfully!');
-    } catch (err) {
-      setError(err.message || 'Failed to update profile. Please try again.');
-    } finally {
-      setSaving(false);
-      setUploadProgress(0);
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setError('');
+  //   setSuccess('');
+  //   if (userData.phoneNumber && !validatePhoneNumber(userData.phoneNumber)) { setError('Please enter a valid phone number (+63 followed by 10 digits)'); return; }
+  //   if (socialLinks.some(link => link.url && !validateUrl(link.url))) { setError('Please enter valid URLs for social links'); return; }
+  //   setSaving(true);
+  //   setUploadProgress(0);
+  //   try {
+  //     const currentUser = auth.currentUser;
+  //     if (!currentUser) { navigate('/login'); return; }
+  //     const socialLinksObj = {};
+  //     socialLinks.forEach(link => {
+  //       if (link.url && link.url.trim() !== '') {
+  //         const platform = detectPlatform(link.url);
+  //         let key = platform;
+  //         let counter = 1;
+  //         while (socialLinksObj[key]) { key = `${platform}${counter}`; counter++; }
+  //         socialLinksObj[key] = link.url;
+  //       }
+  //     });
+  //     const updateData = {
+  //       displayName: userData.displayName || '',
+  //       bio: userData.bio || '',
+  //       location: userData.location || '',
+  //       occupation: userData.occupation || '',
+  //       company: 'City College Of Calamba',
+  //       phoneNumber: userData.phoneNumber || '',
+  //       skills: userData.skills || '',
+  //       socialLinks: socialLinksObj,
+  //       updatedAt: new Date().toISOString(),
+  //     };
+  //     const userDocRef = doc(db, 'users', currentUser.uid);
+  //     const userDoc = await getDoc(userDocRef);
+  //     if (!userDoc.exists()) {
+  //       await setDoc(userDocRef, { ...updateData, email: currentUser.email || '', createdAt: new Date().toISOString(), uid: currentUser.uid, photoURL: currentPhotoURL, profilePic: currentPhotoURL, coverPhotoURL: currentCoverURL, coverPhoto: currentCoverURL });
+  //     } else {
+  //       await updateDoc(userDocRef, updateData);
+  //     }
+  //     setUploadProgress(100);
+  //     setSuccess('Profile information saved successfully!');
+  //   } catch (err) {
+  //     setError(err.message || 'Failed to update profile. Please try again.');
+  //   } finally {
+  //     setSaving(false);
+  //     setUploadProgress(0);
+  //   }
+  // };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setSuccess('');
+  if (userData.phoneNumber && !validatePhoneNumber(userData.phoneNumber)) { 
+    setError('Please enter a valid phone number (+63 followed by 10 digits)'); 
+    return; 
+  }
+  if (socialLinks.some(link => link.url && !validateUrl(link.url))) { 
+    setError('Please enter valid URLs for social links'); 
+    return; 
+  }
+  
+  setSaving(true);
+  setUploadProgress(0);
+  
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) { 
+      navigate('/login'); 
+      return; 
     }
-  };
-
+    
+    const socialLinksObj = {};
+    socialLinks.forEach(link => {
+      if (link.url && link.url.trim() !== '') {
+        const platform = detectPlatform(link.url);
+        let key = platform;
+        let counter = 1;
+        while (socialLinksObj[key]) { 
+          key = `${platform}${counter}`; 
+          counter++; 
+        }
+        socialLinksObj[key] = link.url;
+      }
+    });
+    
+    const updateData = {
+      displayName: userData.displayName || '',
+      bio: userData.bio || '',
+      location: userData.location || '',
+      occupation: userData.occupation || '',
+      company: 'City College Of Calamba',
+      phoneNumber: userData.phoneNumber || '',
+      skills: userData.skills || '',
+      socialLinks: socialLinksObj,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      await setDoc(userDocRef, { 
+        ...updateData, 
+        email: currentUser.email || '', 
+        createdAt: new Date().toISOString(), 
+        uid: currentUser.uid, 
+        photoURL: currentPhotoURL, 
+        profilePic: currentPhotoURL, 
+        coverPhotoURL: currentCoverURL, 
+        coverPhoto: currentCoverURL 
+      });
+    } else {
+      await updateDoc(userDocRef, updateData);
+    }
+    
+    setUploadProgress(100);
+    setSuccess('Profile information saved successfully!');
+    
+    // Redirect to themes after save
+    if (onSaveComplete) {
+      setTimeout(() => {
+        onSaveComplete();
+      }, 1500);
+    }
+  
+  } catch (err) {
+    setError(err.message || 'Failed to update profile. Please try again.');
+  } finally {
+    setSaving(false);
+    setUploadProgress(0);
+  }
+};
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">

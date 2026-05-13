@@ -1,8 +1,69 @@
-// src/user/pages/Rejected.jsx - Static UI only
-
+// src/user/pages/Rejected.jsx - with real-time status listener and sign out
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { auth, db } from '../../config/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
+import { signOut } from 'firebase/auth';
 
 function Rejected() {
+  const [isChecking, setIsChecking] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    
+    // Real-time listener for status changes
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (doc) => {
+        if (doc.exists()) {
+          const status = doc.data()?.accountStatus;
+          
+          // If status changes to approved, redirect to home
+          if (status === 'approved') {
+            navigate('/home', { replace: true });
+          }
+          // If status changes to pending, redirect to pending page
+          else if (status === 'pending') {
+            navigate('/pending', { replace: true });
+          }
+          // If status changes to deleted, redirect to login
+          else if (status === 'deleted') {
+            navigate('/login?deleted=true', { replace: true });
+          }
+        }
+        setIsChecking(false);
+      },
+      (error) => {
+        console.error('Error checking status:', error);
+        setIsChecking(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    navigate('/login', { replace: true });
+  };
+
+  if (isChecking) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 px-5">
       <motion.div
@@ -54,8 +115,16 @@ function Rejected() {
           <p className="text-xs text-gray-400">Application rejected</p>
         </div>
 
+        {/* Sign out button */}
+        <button
+          onClick={handleSignOut}
+          className="w-full py-2.5 mb-3 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 transition"
+        >
+          Sign Out
+        </button>
+
         {/* Note */}
-        <div className="bg-gray-50 rounded-xl p-3 mb-4">
+        <div className="bg-gray-50 rounded-xl p-3">
           <p className="text-[0.7rem] text-gray-400 text-center">
             You may re-apply for an account or contact support.
           </p>

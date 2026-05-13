@@ -26,116 +26,173 @@ function Login() {
     }
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
 
-          if (userDoc.exists()) {
-            const status = userDoc.data()?.accountStatus;
-            
-            // Route based on account status
-            switch(status) {
-              case 'approved':
-                navigate('/home', { replace: true });
-                break;
-              case 'pending':
-                navigate('/pending', { replace: true });
-                break;
-              case 'rejected':
-                navigate('/rejected', { replace: true });
-                break;
-              case 'deleted':
-                // Sign out and redirect to login with deleted flag
-                await signOut(auth);
-                navigate('/login?deleted=true', { replace: true });
-                break;
-              default:
-                // Unknown status, treat as pending
-                navigate('/pending', { replace: true });
-            }
-            return;
-          } else {
-            // Auth exists but no Firestore doc (e.g. after account deletion)
-            // Stay on login page so they can register again
-            setCheckingAuth(false);
+        if (userDoc.exists()) {
+          const status = userDoc.data()?.accountStatus;
+          
+          // Route based on account status
+          switch(status) {
+            case 'approved':
+              navigate('/home', { replace: true });
+              break;
+            case 'pending':
+              navigate('/pending', { replace: true });
+              break;
+            case 'rejected':
+              navigate('/rejected', { replace: true });
+              break;
+            case 'deleted':
+              // ✅ FIX: Don't sign out - just go to deleted page
+              navigate('/deleted', { replace: true });
+              break;
+            default:
+              navigate('/pending', { replace: true });
           }
-        } catch (err) {
-          console.error('Auth check error:', err);
-          await signOut(auth);
+          return;
+        } else {
           setCheckingAuth(false);
         }
-      } else {
+      } catch (err) {
+        console.error('Auth check error:', err);
         setCheckingAuth(false);
       }
-    });
+    } else {
+      setCheckingAuth(false);
+    }
+  });
 
-    return () => unsubscribe();
-  }, [navigate]);
+  return () => unsubscribe();
+}, [navigate]);
+  // const saveUserToFirestore = async (user) => {
+  //   try {
+  //     const userRef = doc(db, 'users', user.uid);
+  //     const userDoc = await getDoc(userRef);
+
+  //     if (!userDoc.exists()) {
+  //       console.log('Creating new user:', user.email);
+  //       await setDoc(userRef, {
+  //         uid: user.uid,
+  //         displayName: user.displayName || '',
+  //         email: user.email || '',
+  //         photoURL: user.photoURL || '',
+  //         emailVerified: user.emailVerified || false,
+  //         phoneNumber: user.phoneNumber || null,
+  //         provider: 'google.com',
+  //         createdAt: new Date().toISOString(),
+  //         lastLoginAt: new Date().toISOString(),
+  //         lastLoginAttempt: new Date().toISOString(),
+  //         bio: '',
+  //         location: '',
+  //         occupation: '',
+  //         skills: '',
+  //         socialLinks: {},
+  //         isActive: true,
+  //         accountStatus: 'pending', // New users start as pending
+  //         accountType: 'user',
+  //         selectedLayout: 1,
+  //         coverPhotoURL: '',
+  //         agreedToTerms: true,
+  //         agreedToTermsAt: new Date().toISOString(),
+  //       });
+  //       console.log('User created successfully');
+  //       return { success: true, status: 'pending' };
+  //     } else {
+  //       const status = userDoc.data()?.accountStatus;
+        
+  //       // If account is deleted or rejected, prevent login
+  //       if (status === 'deleted') {
+  //         await signOut(auth);
+  //         return { success: false, error: 'Account has been deleted.', status: 'deleted' };
+  //       }
+        
+  //       if (status === 'rejected') {
+  //         await signOut(auth);
+  //         return { success: false, error: 'Account has been rejected.', status: 'rejected' };
+  //       }
+        
+  //       // Update last login for active/pending accounts
+  //       await updateDoc(userRef, {
+  //         lastLoginAt: new Date().toISOString(),
+  //         isActive: status !== 'pending',
+  //       });
+        
+  //       return { success: true, status: status || 'pending' };
+  //     }
+  //   } catch (error) {
+  //     console.error('Error saving user to Firestore:', error);
+  //     return { success: false, error: error.message };
+  //   }
+  // };
 
   const saveUserToFirestore = async (user) => {
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
+  try {
+    const userRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userRef);
 
-      if (!userDoc.exists()) {
-        console.log('Creating new user:', user.email);
-        await setDoc(userRef, {
-          uid: user.uid,
-          displayName: user.displayName || '',
-          email: user.email || '',
-          photoURL: user.photoURL || '',
-          emailVerified: user.emailVerified || false,
-          phoneNumber: user.phoneNumber || null,
-          provider: 'google.com',
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          lastLoginAttempt: new Date().toISOString(),
-          bio: '',
-          location: '',
-          occupation: '',
-          skills: '',
-          socialLinks: {},
-          isActive: true,
-          accountStatus: 'pending', // New users start as pending
-          accountType: 'user',
-          selectedLayout: 1,
-          coverPhotoURL: '',
-          agreedToTerms: true,
-          agreedToTermsAt: new Date().toISOString(),
-        });
-        console.log('User created successfully');
-        return { success: true, status: 'pending' };
-      } else {
-        const status = userDoc.data()?.accountStatus;
-        
-        // If account is deleted or rejected, prevent login
-        if (status === 'deleted') {
-          await signOut(auth);
-          return { success: false, error: 'Account has been deleted.', status: 'deleted' };
-        }
-        
-        if (status === 'rejected') {
-          await signOut(auth);
-          return { success: false, error: 'Account has been rejected.', status: 'rejected' };
-        }
-        
-        // Update last login for active/pending accounts
-        await updateDoc(userRef, {
-          lastLoginAt: new Date().toISOString(),
-          isActive: status !== 'pending',
-        });
-        
-        return { success: true, status: status || 'pending' };
+    if (!userDoc.exists()) {
+      console.log('Creating new user:', user.email);
+      await setDoc(userRef, {
+        uid: user.uid,
+        displayName: user.displayName || '',
+        email: user.email || '',
+        photoURL: user.photoURL || '',
+        emailVerified: user.emailVerified || false,
+        phoneNumber: user.phoneNumber || null,
+        provider: 'google.com',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        lastLoginAttempt: new Date().toISOString(),
+        bio: '',
+        location: '',
+        occupation: '',
+        skills: '',
+        socialLinks: {},
+        isActive: true,
+        accountStatus: 'pending', // New users start as pending
+        accountType: 'user',
+        selectedLayout: 1,
+        coverPhotoURL: '',
+        agreedToTerms: true,
+        agreedToTermsAt: new Date().toISOString(),
+      });
+      console.log('User created successfully');
+      return { success: true, status: 'pending' };
+    } else {
+      const status = userDoc.data()?.accountStatus;
+      
+      // ✅ FIX: Don't block deleted accounts - let them login
+      if (status === 'deleted') {
+        // Update last login and let them proceed to Deleted page
+        await updateDoc(userRef, { lastLoginAt: new Date().toISOString() });
+        return { success: true, status: 'deleted' };
       }
-    } catch (error) {
-      console.error('Error saving user to Firestore:', error);
-      return { success: false, error: error.message };
+      
+      // ✅ FIX: Don't block rejected accounts either - let them see Rejected page
+      if (status === 'rejected') {
+        // Update last login and let them proceed to Rejected page
+        await updateDoc(userRef, { lastLoginAt: new Date().toISOString() });
+        return { success: true, status: 'rejected' };
+      }
+      
+      // Update last login for active/pending accounts
+      await updateDoc(userRef, {
+        lastLoginAt: new Date().toISOString(),
+        isActive: status !== 'pending',
+      });
+      
+      return { success: true, status: status || 'pending' };
     }
-  };
-
+  } catch (error) {
+    console.error('Error saving user to Firestore:', error);
+    return { success: false, error: error.message };
+  }
+};
   const handleGoogleSignIn = async () => {
     if (!agreeToTerms) {
       setError('Please agree to the Terms of Service and Privacy Policy to continue.');

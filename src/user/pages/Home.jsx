@@ -1,8 +1,8 @@
-// src/user/pages/Home.jsx
-
+// src/user/pages/Home.jsx - with real-time status listener
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -16,7 +16,7 @@ import {
   Moon,
   Sun,
 } from 'lucide-react';
-import { auth } from '../../config/firebase';
+import { auth, db } from '../../config/firebase';
 import UpdateProfile from './UpdateProfile';
 import ViewQr from './ViewQr';
 import SelectLayout from './SelectLayout';
@@ -24,25 +24,75 @@ import SettingsPage from './Settings';
 
 function Home() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('dashboard');
+  
+  // Load saved section from localStorage, default to 'dashboard'
+  const [activeSection, setActiveSection] = useState(() => {
+    return localStorage.getItem('userActiveSection') || 'dashboard';
+  });
+  
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
+  
+  // Load dark mode from localStorage immediately (no default state)
+  const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('userTheme');
-    if (savedTheme) {
-      setDarkMode(savedTheme === 'dark');
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setDarkMode(prefersDark);
+    if (savedTheme !== null) {
+      return savedTheme === 'dark';
     }
-  }, []);
+    // Only use system preference if no saved theme exists
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
+  // Save active section to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('userActiveSection', activeSection);
+  }, [activeSection]);
+
+  // Save dark mode to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('userTheme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
+
+  // Real-time status listener
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    
+    // Listen for real-time status changes
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (doc) => {
+        if (doc.exists()) {
+          const status = doc.data()?.accountStatus;
+          
+          // If status changes from approved to anything else, redirect immediately
+          if (status === 'pending') {
+            navigate('/pending', { replace: true });
+          } else if (status === 'rejected') {
+            navigate('/rejected', { replace: true });
+          } else if (status === 'deleted') {
+            navigate('/login?deleted=true', { replace: true });
+          }
+          // If status is 'approved', stay on home page
+        } else {
+          // Document doesn't exist, redirect to login
+          navigate('/login', { replace: true });
+        }
+      },
+      (error) => {
+        console.error('Error checking status:', error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -306,14 +356,14 @@ function Home() {
             {activeSection === 'dashboard' && (
               <div>
                 <div className="mb-8">
-                  <h1 className={`text-2xl md:text-3xl font-bold ${headerTextClass}`}>Dashboard</h1>
-                  <p className={`${headerSubtextClass} mt-1 text-sm`}>
+                  {/* <h1 className={`text-2xl md:text-3xl font-bold ${headerTextClass}`}>Dashboard</h1> */}
+                  {/* <p className={`${headerSubtextClass} mt-1 text-sm`}>
                     Welcome back,{' '}
                     <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
                       {user?.displayName?.split(' ')[0] || 'User'}
                     </span>{' '}
                     👋
-                  </p>
+                  </p> */}
                 </div>
 
                 {/* Profile card */}
@@ -366,7 +416,13 @@ function Home() {
 
             {/* ── Sub-pages ─────────────────────────────────────────────── */}
             {activeSection === 'qr'       && <ViewQr        darkMode={darkMode} />}
-            {activeSection === 'profile'  && <UpdateProfile darkMode={darkMode} />}
+            {/* {activeSection === 'profile'  && <UpdateProfile darkMode={darkMode} />} */}
+            {activeSection === 'profile'  && (
+  <UpdateProfile 
+    darkMode={darkMode} 
+    onSaveComplete={() => setActiveSection('themes')} 
+  />
+)}
             {activeSection === 'settings' && <SettingsPage  darkMode={darkMode} />}
 
           </div>
