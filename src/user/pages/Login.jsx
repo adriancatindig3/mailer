@@ -1,5 +1,4 @@
-// src/user/pages/Login.jsx - RESPECTS ALL STATUSES
-
+// src/user/pages/Login.jsx
 import { useState, useEffect } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../config/firebase';
@@ -26,173 +25,100 @@ function Login() {
     }
   }, []);
 
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      try {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
 
-        if (userDoc.exists()) {
-          const status = userDoc.data()?.accountStatus;
-          
-          // Route based on account status
-          switch(status) {
-            case 'approved':
-              navigate('/home', { replace: true });
-              break;
-            case 'pending':
-              navigate('/pending', { replace: true });
-              break;
-            case 'rejected':
-              navigate('/rejected', { replace: true });
-              break;
-            case 'deleted':
-              // ✅ FIX: Don't sign out - just go to deleted page
-              navigate('/deleted', { replace: true });
-              break;
-            default:
-              navigate('/pending', { replace: true });
+          if (userDoc.exists()) {
+            const status = userDoc.data()?.accountStatus;
+            const accountType = userDoc.data()?.accountType;
+            
+            // Admin goes directly to admin dashboard
+            if (accountType === 'admin') {
+              navigate('/admin', { replace: true });
+              return;
+            }
+            
+            // Route based on account status for regular users
+            switch(status) {
+              case 'approved':
+                navigate('/home', { replace: true });
+                break;
+              case 'registration':
+                navigate('/register', { replace: true });
+                break;
+              case 'pending':
+                navigate('/pending', { replace: true });
+                break;
+              case 'rejected':
+                navigate('/rejected', { replace: true });
+                break;
+              case 'deleted':
+                navigate('/deleted', { replace: true });
+                break;
+              default:
+                navigate('/register', { replace: true });
+            }
+            return;
+          } else {
+            // User exists in Auth but not in Firestore - needs registration
+            setCheckingAuth(false);
           }
-          return;
-        } else {
+        } catch (err) {
+          console.error('Auth check error:', err);
           setCheckingAuth(false);
         }
-      } catch (err) {
-        console.error('Auth check error:', err);
+      } else {
         setCheckingAuth(false);
       }
-    } else {
-      setCheckingAuth(false);
-    }
-  });
+    });
 
-  return () => unsubscribe();
-}, [navigate]);
-  // const saveUserToFirestore = async (user) => {
-  //   try {
-  //     const userRef = doc(db, 'users', user.uid);
-  //     const userDoc = await getDoc(userRef);
-
-  //     if (!userDoc.exists()) {
-  //       console.log('Creating new user:', user.email);
-  //       await setDoc(userRef, {
-  //         uid: user.uid,
-  //         displayName: user.displayName || '',
-  //         email: user.email || '',
-  //         photoURL: user.photoURL || '',
-  //         emailVerified: user.emailVerified || false,
-  //         phoneNumber: user.phoneNumber || null,
-  //         provider: 'google.com',
-  //         createdAt: new Date().toISOString(),
-  //         lastLoginAt: new Date().toISOString(),
-  //         lastLoginAttempt: new Date().toISOString(),
-  //         bio: '',
-  //         location: '',
-  //         occupation: '',
-  //         skills: '',
-  //         socialLinks: {},
-  //         isActive: true,
-  //         accountStatus: 'pending', // New users start as pending
-  //         accountType: 'user',
-  //         selectedLayout: 1,
-  //         coverPhotoURL: '',
-  //         agreedToTerms: true,
-  //         agreedToTermsAt: new Date().toISOString(),
-  //       });
-  //       console.log('User created successfully');
-  //       return { success: true, status: 'pending' };
-  //     } else {
-  //       const status = userDoc.data()?.accountStatus;
-        
-  //       // If account is deleted or rejected, prevent login
-  //       if (status === 'deleted') {
-  //         await signOut(auth);
-  //         return { success: false, error: 'Account has been deleted.', status: 'deleted' };
-  //       }
-        
-  //       if (status === 'rejected') {
-  //         await signOut(auth);
-  //         return { success: false, error: 'Account has been rejected.', status: 'rejected' };
-  //       }
-        
-  //       // Update last login for active/pending accounts
-  //       await updateDoc(userRef, {
-  //         lastLoginAt: new Date().toISOString(),
-  //         isActive: status !== 'pending',
-  //       });
-        
-  //       return { success: true, status: status || 'pending' };
-  //     }
-  //   } catch (error) {
-  //     console.error('Error saving user to Firestore:', error);
-  //     return { success: false, error: error.message };
-  //   }
-  // };
+    return () => unsubscribe();
+  }, [navigate]);
 
   const saveUserToFirestore = async (user) => {
-  try {
-    const userRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userRef);
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
 
-    if (!userDoc.exists()) {
-      console.log('Creating new user:', user.email);
-      await setDoc(userRef, {
-        uid: user.uid,
-        displayName: user.displayName || '',
-        email: user.email || '',
-        photoURL: user.photoURL || '',
-        emailVerified: user.emailVerified || false,
-        phoneNumber: user.phoneNumber || null,
-        provider: 'google.com',
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-        lastLoginAttempt: new Date().toISOString(),
-        bio: '',
-        location: '',
-        occupation: '',
-        skills: '',
-        socialLinks: {},
-        isActive: true,
-        accountStatus: 'pending', // New users start as pending
-        accountType: 'user',
-        selectedLayout: 1,
-        coverPhotoURL: '',
-        agreedToTerms: true,
-        agreedToTermsAt: new Date().toISOString(),
-      });
-      console.log('User created successfully');
-      return { success: true, status: 'pending' };
-    } else {
-      const status = userDoc.data()?.accountStatus;
-      
-      // ✅ FIX: Don't block deleted accounts - let them login
-      if (status === 'deleted') {
-        // Update last login and let them proceed to Deleted page
-        await updateDoc(userRef, { lastLoginAt: new Date().toISOString() });
-        return { success: true, status: 'deleted' };
+      if (!userDoc.exists()) {
+        // ✅ DON'T CREATE THE USER DOCUMENT HERE!
+        // Just return that user needs to complete registration
+        console.log('New user needs to complete registration:', user.email);
+        return { success: true, status: 'registration', isNewUser: true };
+      } else {
+        const status = userDoc.data()?.accountStatus;
+        const accountType = userDoc.data()?.accountType;
+        
+        // Handle deleted accounts
+        if (status === 'deleted') {
+          await updateDoc(userRef, { lastLoginAt: new Date().toISOString() });
+          return { success: true, status: 'deleted', accountType };
+        }
+        
+        // Handle rejected accounts
+        if (status === 'rejected') {
+          await updateDoc(userRef, { lastLoginAt: new Date().toISOString() });
+          return { success: true, status: 'rejected', accountType };
+        }
+        
+        // Update last login for existing users
+        await updateDoc(userRef, {
+          lastLoginAt: new Date().toISOString(),
+          isActive: status === 'approved',
+        });
+        
+        return { success: true, status: status || 'pending', accountType };
       }
-      
-      // ✅ FIX: Don't block rejected accounts either - let them see Rejected page
-      if (status === 'rejected') {
-        // Update last login and let them proceed to Rejected page
-        await updateDoc(userRef, { lastLoginAt: new Date().toISOString() });
-        return { success: true, status: 'rejected' };
-      }
-      
-      // Update last login for active/pending accounts
-      await updateDoc(userRef, {
-        lastLoginAt: new Date().toISOString(),
-        isActive: status !== 'pending',
-      });
-      
-      return { success: true, status: status || 'pending' };
+    } catch (error) {
+      console.error('Error checking user:', error);
+      return { success: false, error: error.message };
     }
-  } catch (error) {
-    console.error('Error saving user to Firestore:', error);
-    return { success: false, error: error.message };
-  }
-};
+  };
+
   const handleGoogleSignIn = async () => {
     if (!agreeToTerms) {
       setError('Please agree to the Terms of Service and Privacy Policy to continue.');
@@ -214,35 +140,24 @@ useEffect(() => {
 
       if (!saveResult.success) {
         await signOut(auth);
-        
-        // Show specific error message based on status
-        if (saveResult.status === 'deleted') {
-          setError('Your account has been deleted. Please contact the administrator.');
-          navigate('/login?deleted=true', { replace: true });
-        } else if (saveResult.status === 'rejected') {
-          setError('Your account application was rejected. Please contact the administrator for more information.');
-          navigate('/login?rejected=true', { replace: true });
-        } else {
-          setError(saveResult.error || 'Failed to create account. Please try again.');
-        }
-        
+        setError(saveResult.error || 'Failed to create account. Please try again.');
         setLoading(false);
         return;
       }
 
       // Route based on account status
-      switch(saveResult.status) {
-        case 'approved':
-          navigate('/home', { replace: true });
-          break;
-        case 'pending':
-          navigate('/pending', { replace: true });
-          break;
-        case 'rejected':
-          navigate('/rejected', { replace: true });
-          break;
-        default:
-          navigate('/pending', { replace: true });
+      if (saveResult.status === 'approved') {
+        navigate('/home', { replace: true });
+      } else if (saveResult.status === 'registration') {
+        navigate('/register', { replace: true });
+      } else if (saveResult.status === 'pending') {
+        navigate('/pending', { replace: true });
+      } else if (saveResult.status === 'rejected') {
+        navigate('/rejected', { replace: true });
+      } else if (saveResult.status === 'deleted') {
+        navigate('/deleted', { replace: true });
+      } else {
+        navigate('/register', { replace: true });
       }
 
     } catch (err) {
@@ -276,7 +191,6 @@ useEffect(() => {
         transition={{ duration: 0.5 }}
         className="relative max-w-md w-full mx-auto"
       >
-        {/* Card with distinct shadow and border */}
         <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-6 sm:p-8">
           {/* Logo */}
           <div className="flex justify-center mb-6">

@@ -1,11 +1,11 @@
 // src/App.jsx
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import Login from './user/pages/Login';
+import Register from './user/pages/Register';
 import Home from './user/pages/Home';
 import UpdateProfile from './user/pages/UpdateProfile';
 import ViewQr from './user/pages/ViewQr';
@@ -25,14 +25,12 @@ const AdminRoute = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       
-      // First check: Is user logged in?
       if (!user) {
         setIsAdmin(false);
         setLoading(false);
         return;
       }
       
-      // Second check: Does user have admin role?
       try {
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
@@ -64,10 +62,7 @@ const AdminRoute = ({ children }) => {
     );
   }
 
-  // Not logged in -> redirect to login
   if (!isAdmin && !auth.currentUser) return <Navigate to="/login" replace />;
-  
-  // Logged in but not admin -> redirect to home
   if (!isAdmin) return <Navigate to="/home" replace />;
   
   return children;
@@ -88,7 +83,6 @@ const ProtectedRoute = ({ children }) => {
             const accountStatus = userDoc.data()?.accountStatus;
             const accountType = userDoc.data()?.accountType;
             
-            // BLOCK ADMIN USERS - redirect them to admin dashboard
             if (accountType === 'admin') {
               setStatus('admin');
               return;
@@ -126,7 +120,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (status === 'unauthenticated') return <Navigate to="/login" replace />;
-  if (status === 'admin') return <Navigate to="/admin" replace />; // Redirect admin to admin dashboard
+  if (status === 'admin') return <Navigate to="/admin" replace />;
   if (status === 'pending') return <Navigate to="/pending" replace />;
   if (status === 'rejected') return <Navigate to="/rejected" replace />;
   if (status === 'deleted') return <Navigate to="/deleted" replace />;
@@ -141,13 +135,14 @@ const PublicRoute = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Check if user is admin to redirect appropriately
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists() && userDoc.data()?.accountType === 'admin') {
             setStatus('admin');
+          } else if (!userDoc.exists()) {
+            setStatus('registration');
           } else {
             setStatus('authenticated');
           }
@@ -169,10 +164,72 @@ const PublicRoute = ({ children }) => {
     );
   }
 
+  if (status === 'registration') return <Navigate to="/register" replace />;
   if (status === 'authenticated') return <Navigate to="/home" replace />;
   if (status === 'admin') return <Navigate to="/admin" replace />;
 
   return children;
+};
+
+// Route for register page
+const RegisterRoute = () => {
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (!userDoc.exists()) {
+            setStatus('registration');
+          } else {
+            const accountStatus = userDoc.data()?.accountStatus;
+            const accountType = userDoc.data()?.accountType;
+            
+            if (accountType === 'admin') {
+              setStatus('admin');
+              return;
+            }
+            
+            if (accountStatus === 'approved') {
+              setStatus('approved');
+            } else if (accountStatus === 'rejected') {
+              setStatus('rejected');
+            } else if (accountStatus === 'deleted') {
+              setStatus('deleted');
+            } else {
+              setStatus('pending');
+            }
+          }
+        } catch (error) {
+          console.error('Error checking user status:', error);
+          setStatus('unauthenticated');
+        }
+      } else {
+        setStatus('unauthenticated');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
+  if (status === 'admin') return <Navigate to="/admin" replace />;
+  if (status === 'approved') return <Navigate to="/home" replace />;
+  if (status === 'pending') return <Navigate to="/pending" replace />;
+  if (status === 'rejected') return <Navigate to="/rejected" replace />;
+  if (status === 'deleted') return <Navigate to="/deleted" replace />;
+  
+  return <Register />;
 };
 
 // Route for pending page
@@ -369,6 +426,7 @@ function App() {
         
         {/* AUTH ROUTES */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<RegisterRoute />} />
         <Route path="/pending" element={<PendingRoute />} />
         <Route path="/rejected" element={<RejectedRoute />} />
         <Route path="/deleted" element={<DeletedRoute />} />
@@ -376,7 +434,7 @@ function App() {
         {/* ADMIN ONLY ROUTE - Protected */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         
-        {/* USER ROUTES - Now admin cannot access these */}
+        {/* USER ROUTES */}
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/updateprofile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />

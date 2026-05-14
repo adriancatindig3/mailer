@@ -93,40 +93,7 @@ import {
   const progressBarBgClass = darkMode ? 'bg-gray-700' : 'bg-gray-100';
   const progressBarFillClass = darkMode ? 'bg-white' : 'bg-gray-900';
 
-  // ── Load dynamic roles from Firestore ───────────────────────────────────────
-  // useEffect(() => {
-  //   const fetchRoles = async () => {
-  //     setRolesLoading(true);
-  //     try {
-  //       const snap = await getDocs(query(collection(db, 'userRoles'), orderBy('createdAt', 'asc')));
-  //       if (snap.empty) {
-  //         setPositionOptions([
-  //           { value: 'Teaching', label: 'Teaching' },
-  //           { value: 'Non-Teaching', label: 'Non-Teaching' },
-  //           { value: 'Alumni', label: 'Alumni' },
-  //         ]);
-  //       } else {
-  //         setPositionOptions(
-  //           snap.docs.map(d => {
-  //             const data = d.data();
-  //             return { value: data.label, label: data.label, color: data.color };
-  //           })
-  //         );
-  //       }
-  //     } catch (e) {
-  //       console.error('Failed to load roles:', e);
-  //       setPositionOptions([
-  //         { value: 'Teaching', label: 'Teaching' },
-  //         { value: 'Non-Teaching', label: 'Non-Teaching' },
-  //         { value: 'Alumni', label: 'Alumni' },
-  //       ]);
-  //     } finally {
-  //       setRolesLoading(false);
-  //     }
-  //   };
-  //   fetchRoles();
-  // }, []);
-
+ 
   const { positionOptions, rolesLoading } = useUserRoles();
   const createImage = (url) =>
     new Promise((resolve, reject) => {

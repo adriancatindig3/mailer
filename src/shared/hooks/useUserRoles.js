@@ -18,12 +18,8 @@ export const useUserRoles = () => {
       rolesQuery,
       (snapshot) => {
         if (snapshot.empty) {
-          // Fallback default roles
-          setPositionOptions([
-            { value: 'Teaching', label: 'Teaching' },
-            { value: 'Non-Teaching', label: 'Non-Teaching' },
-            { value: 'Alumni', label: 'Alumni' },
-          ]);
+          // ✅ NO FALLBACKS - Just return empty array
+          setPositionOptions([]);
         } else {
           // Map Firestore data to options
           const roles = snapshot.docs.map(doc => {
@@ -40,12 +36,8 @@ export const useUserRoles = () => {
       },
       (error) => {
         console.error('Error loading roles:', error);
-        // Fallback on error
-        setPositionOptions([
-          { value: 'Teaching', label: 'Teaching' },
-          { value: 'Non-Teaching', label: 'Non-Teaching' },
-          { value: 'Alumni', label: 'Alumni' },
-        ]);
+        // ✅ NO FALLBACKS - Return empty array on error too
+        setPositionOptions([]);
         setRolesLoading(false);
       }
     );
