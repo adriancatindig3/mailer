@@ -14,8 +14,7 @@ import {
   Move, ZoomIn, RotateCw, Crop, CheckCircle
 } from "lucide-react";
 
-// const UpdateProfile = ({ darkMode }) => {
-  const UpdateProfile = ({ darkMode, onSaveComplete }) => {
+const UpdateProfile = ({ darkMode, onSaveComplete }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userData, setUserData] = useState({
@@ -298,54 +297,6 @@ import {
     return /^\+63\d{10}$/.test(phone);
   };
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setError('');
-  //   setSuccess('');
-  //   if (userData.phoneNumber && !validatePhoneNumber(userData.phoneNumber)) { setError('Please enter a valid phone number (+63 followed by 10 digits)'); return; }
-  //   if (socialLinks.some(link => link.url && !validateUrl(link.url))) { setError('Please enter valid URLs for social links'); return; }
-  //   setSaving(true);
-  //   setUploadProgress(0);
-  //   try {
-  //     const currentUser = auth.currentUser;
-  //     if (!currentUser) { navigate('/login'); return; }
-  //     const socialLinksObj = {};
-  //     socialLinks.forEach(link => {
-  //       if (link.url && link.url.trim() !== '') {
-  //         const platform = detectPlatform(link.url);
-  //         let key = platform;
-  //         let counter = 1;
-  //         while (socialLinksObj[key]) { key = `${platform}${counter}`; counter++; }
-  //         socialLinksObj[key] = link.url;
-  //       }
-  //     });
-  //     const updateData = {
-  //       displayName: userData.displayName || '',
-  //       bio: userData.bio || '',
-  //       location: userData.location || '',
-  //       occupation: userData.occupation || '',
-  //       company: 'City College Of Calamba',
-  //       phoneNumber: userData.phoneNumber || '',
-  //       skills: userData.skills || '',
-  //       socialLinks: socialLinksObj,
-  //       updatedAt: new Date().toISOString(),
-  //     };
-  //     const userDocRef = doc(db, 'users', currentUser.uid);
-  //     const userDoc = await getDoc(userDocRef);
-  //     if (!userDoc.exists()) {
-  //       await setDoc(userDocRef, { ...updateData, email: currentUser.email || '', createdAt: new Date().toISOString(), uid: currentUser.uid, photoURL: currentPhotoURL, profilePic: currentPhotoURL, coverPhotoURL: currentCoverURL, coverPhoto: currentCoverURL });
-  //     } else {
-  //       await updateDoc(userDocRef, updateData);
-  //     }
-  //     setUploadProgress(100);
-  //     setSuccess('Profile information saved successfully!');
-  //   } catch (err) {
-  //     setError(err.message || 'Failed to update profile. Please try again.');
-  //   } finally {
-  //     setSaving(false);
-  //     setUploadProgress(0);
-  //   }
-  // };
 const handleSubmit = async (e) => {
   e.preventDefault();
   setError('');
@@ -468,14 +419,35 @@ const handleSubmit = async (e) => {
               <Loader2 size={28} className="text-white animate-spin" />
             </div>
           )}
+          
           {coverPhotoPreview && coverPhotoPreview !== defaultCoverPhoto && (
             <img src={coverPhotoPreview} alt="Cover" className="w-full h-full object-cover" />
           )}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <div className={`${cardBgClass} rounded-full px-4 py-2 flex items-center gap-2 text-sm font-medium ${textClass}`}>
-              <Camera size={14} /> Change cover
+          
+          {/* Hover overlay - always visible but more prominent on hover */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center">
+            <div className={`${cardBgClass} rounded-full px-4 py-2 flex items-center gap-2 text-sm font-medium ${textClass} transform transition-all duration-300 group-hover:scale-105 shadow-lg`}>
+              <Camera size={14} /> 
+              {coverPhotoPreview && coverPhotoPreview !== defaultCoverPhoto ? 'Change cover' : 'Add cover photo'}
             </div>
           </div>
+          
+          {/* Badge indicator when cover exists
+          {coverPhotoPreview && coverPhotoPreview !== defaultCoverPhoto && (
+            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-white flex items-center gap-1">
+              <Camera size={10} /> Cover set
+            </div>
+          )} */}  
+          
+          {/* Empty state indicator */}
+          {(!coverPhotoPreview || coverPhotoPreview === defaultCoverPhoto) && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-black/40 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs text-white flex items-center gap-1">
+                <Camera size={12} /> Click to add cover photo
+              </div>
+            </div>
+          )}
+          
           <input ref={coverPhotoInputRef} type="file" accept="image/*" onChange={handleCoverFileChange} className="hidden" />
         </div>
 
@@ -483,7 +455,7 @@ const handleSubmit = async (e) => {
         <div className="px-4 pt-3 pb-4 flex items-center gap-3">
           <div
             onClick={() => profilePicInputRef.current?.click()}
-            className="relative cursor-pointer flex-shrink-0"
+            className="relative cursor-pointer flex-shrink-0 group"
           >
             {isSavingProfilePic && (
               <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center z-20">
@@ -493,11 +465,13 @@ const handleSubmit = async (e) => {
             <img
               src={profilePicPreview}
               alt="Profile"
-              className="w-16 h-16 rounded-full object-cover bg-gray-200"
+              className="w-16 h-16 rounded-full object-cover bg-gray-200 transition-opacity group-hover:opacity-75"
               style={{ border: `2px solid ${darkMode ? '#1f2937' : 'white'}`, boxShadow: darkMode ? 'none' : '0 0 0 1.5px #e5e7eb' }}
               onError={(e) => { e.target.src = defaultProfilePic; }}
             />
-            <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 ${buttonPrimaryClass} rounded-full flex items-center justify-center border-2 ${darkMode ? 'border-gray-800' : 'border-white'}`}>
+            {/* Hover ring effect */}
+            <div className="absolute inset-0 rounded-full ring-2 ring-transparent group-hover:ring-white/50 transition-all" />
+            <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 ${buttonPrimaryClass} rounded-full flex items-center justify-center border-2 ${darkMode ? 'border-gray-800' : 'border-white'} transition-transform group-hover:scale-110`}>
               <Camera size={9} className={darkMode ? 'text-gray-900' : 'text-white'} />
             </div>
             <input ref={profilePicInputRef} type="file" accept="image/*" onChange={handleProfileFileChange} className="hidden" />
@@ -513,11 +487,6 @@ const handleSubmit = async (e) => {
                 {userData.occupation ? `${userData.occupation} · ` : ''}{userData.company}
               </p>
             </div>
-            {/* {userData.location && (
-              <div className={`flex items-center gap-1 text-xs ${textLightClass} mt-0.5`}>
-                <MapPin size={10} /> {userData.location}
-              </div>
-            )} */}
           </div>
         </div>
       </div>
@@ -599,8 +568,7 @@ const handleSubmit = async (e) => {
             </div>
             <input
               type="text" name="location" value={userData.location} onChange={handleInputChange}
-              // placeholder="City, Country"
-               placeholder="Google Maps link (e.g., https://maps.app.goo.gl/...)"
+              placeholder="Google Maps link (e.g., https://maps.app.goo.gl/...)"
               className={`w-full px-3 py-2.5 border ${inputBorderClass} rounded-lg text-sm ${inputTextClass} ${placeholderClass} focus:outline-none transition bg-transparent`}
             />
             {/* Phone with prefix */}
