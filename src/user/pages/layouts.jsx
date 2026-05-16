@@ -1,261 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { auth, db } from "../../config/firebase";
-import { useNavigate } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { updateDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
-
-import {
-  FaFacebook,
-  FaTwitter,
-  FaInstagram,
-  FaLinkedin,
-  FaGithub,
-  FaYoutube,
-  FaGlobe,
-  FaTiktok,
-  FaPinterest,
-  FaReddit,
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaBuilding,
-  FaCheckCircle,
-  FaLink,
-} from "react-icons/fa";
-
-const FALLBACK_LOGO = "/CCC.png";
-
-// ── Toast ────────────────────────────────────────────────────────────────────
-const Toast = ({ message, visible, darkMode }) => (
-  <div
-    style={{
-      position: "fixed",
-      bottom: 88,
-      left: "50%",
-      transform: `translateX(-50%) translateY(${visible ? 0 : 12}px)`,
-      opacity: visible ? 1 : 0,
-      transition: "opacity 0.25s ease, transform 0.25s ease",
-      zIndex: 9999,
-      pointerEvents: "none",
-      background: darkMode ? "#f1f5f9" : "#0f172a",
-      color: darkMode ? "#0f172a" : "#f1f5f9",
-      padding: "0.6rem 1.1rem",
-      borderRadius: "2rem",
-      fontSize: "0.78rem",
-      fontWeight: 600,
-      letterSpacing: "0.01em",
-      display: "flex",
-      alignItems: "center",
-      gap: "0.45rem",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
-      whiteSpace: "nowrap",
-    }}
-  >
-    <FaCheckCircle style={{ fontSize: "0.75rem", opacity: 0.8 }} />
-    {message}
-  </div>
-);
-
-const SelectLayout = ({ darkMode }) => {
-  const [selectedLayout, setSelectedLayout] = useState(1);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState(null);
-  const [userData, setUserData] = useState(null);
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [slideDirection, setSlideDirection] = useState(null);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const toastTimer = useRef(null);
-
-  // Double-tap tracking (mobile)
-  const lastTapRef = useRef(0);
-
-  const [schoolLogoURL, setSchoolLogoURL] = useState(FALLBACK_LOGO);
-  const navigate = useNavigate();
-
-  const bgClass = darkMode ? "bg-gray-900" : "bg-gray-50";
-  const textClass = darkMode ? "text-white" : "text-gray-900";
-  const textSubClass = darkMode ? "text-gray-400" : "text-gray-500";
-  const borderClass = darkMode ? "border-gray-700" : "border-gray-100";
-  const mobileHeaderBgClass = darkMode ? "bg-gray-800" : "bg-white";
-  const dotActiveClass = darkMode ? "bg-white" : "bg-gray-900";
-  const dotInactiveClass = darkMode ? "bg-gray-600" : "bg-gray-300";
-  const selectedRingClass = darkMode ? "ring-blue-400" : "ring-blue-500";
-  const hoverRingClass = darkMode
-    ? "hover:ring-gray-500"
-    : "hover:ring-gray-400";
-  const navButtonClass = darkMode
-    ? "bg-black/50 text-white"
-    : "bg-black/30 text-white";
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setToastVisible(true);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastVisible(false), 2200);
-  };
-
-  useEffect(() => {
-    const fetchSchoolLogo = async () => {
-      try {
-        const snap = await getDoc(doc(db, "settings", "school"));
-        if (snap.exists() && snap.data().logoURL)
-          setSchoolLogoURL(snap.data().logoURL);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchSchoolLogo();
-  }, []);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        navigate("/login", { replace: true });
-        return;
-      }
-      setUser(currentUser);
-      try {
-        const userDocRef = doc(db, "users", currentUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setUserData({
-            displayName: data.displayName || currentUser.displayName || "User",
-            email: currentUser.email || "",
-            photoURL: data.photoURL || currentUser.photoURL || "",
-            bio: data.bio || "",
-            location: data.location || "",
-            phoneNumber: data.phoneNumber || "",
-            occupation: data.occupation || "",
-            company: "City College of Calamba",
-            socialLinks: {
-              facebook: data.socialLinks?.facebook || "",
-              twitter: data.socialLinks?.twitter || "",
-              instagram: data.socialLinks?.instagram || "",
-              linkedin: data.socialLinks?.linkedin || "",
-              github: data.socialLinks?.github || "",
-              ...data.socialLinks,
-            },
-            selectedLayout: data.selectedLayout || 1,
-            coverPhotoURL: data.coverPhotoURL || "",
-            skills: data.skills || "",
-          });
-          setSelectedLayout(data.selectedLayout || 1);
-        } else {
-          setUserData({
-            displayName: currentUser.displayName || "User",
-            email: currentUser.email || "",
-            photoURL: currentUser.photoURL || "",
-            bio: "",
-            location: "",
-            phoneNumber: "",
-            occupation: "",
-            company: "City College of Calamba",
-            socialLinks: {},
-            selectedLayout: 1,
-            coverPhotoURL: "",
-            skills: "",
-          });
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
-
-  const handleSelectLayout = async (layoutId) => {
-    if (!user || loading) return;
-    setLoading(true);
-    setSelectedLayout(layoutId);
-    try {
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        await updateDoc(userDocRef, {
-          selectedLayout: layoutId,
-          updatedAt: new Date().toISOString(),
-        });
-      }
-      setUserData((prev) => ({ ...prev, selectedLayout: layoutId }));
-      showToast(`Layout ${layoutId} applied`);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setTimeout(() => setLoading(false), 400);
-    }
-  };
-
-  // Double-tap handler (mobile overlay)
-  const handleMobileDoubleTap = () => {
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 320;
-    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      const id = layouts[currentIndex].id;
-      if (id !== selectedLayout) handleSelectLayout(id);
-      else showToast(`Layout ${id} already selected`);
-      lastTapRef.current = 0;
-    } else {
-      lastTapRef.current = now;
-    }
-  };
-
-  const getSocialIcon = (platform) => {
-    const map = {
-      facebook: <FaFacebook />,
-      twitter: <FaTwitter />,
-      instagram: <FaInstagram />,
-      linkedin: <FaLinkedin />,
-      github: <FaGithub />,
-      youtube: <FaYoutube />,
-      website: <FaGlobe />,
-      tiktok: <FaTiktok />,
-      pinterest: <FaPinterest />,
-      reddit: <FaReddit />,
-    };
-    return map[platform] || <FaLink />;
-  };
-
-  const getInitials = (name) => {
-    if (!name) return "U";
-    return name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const SchoolLogo = ({ className = "w-3 h-3", style = {} }) => (
-    <img
-      src={schoolLogoURL}
-      alt="School logo"
-      className={`object-contain ${className}`}
-      style={style}
-      onError={(e) => {
-        e.target.src = FALLBACK_LOGO;
-      }}
-    />
-  );
-
-  // ─── LAYOUTS (Layout1 through Layout9 - same as before) ───────────────────
-  // ... (keep all Layout1 through Layout9 exactly as they are) ...
-
-  const Layout1 = () => (
+const Layout1 = () => (
     <div
       className="w-full font-['Inter'] text-white"
       style={{
@@ -455,6 +198,7 @@ const SelectLayout = ({ darkMode }) => {
             </div>
           </div>
         )}
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
       </div>
     </div>
   );
@@ -663,6 +407,7 @@ const SelectLayout = ({ darkMode }) => {
             </div>
           </div>
         )}
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
       </div>
     </div>
   );
@@ -795,6 +540,7 @@ const SelectLayout = ({ darkMode }) => {
             </div>
           </div>
         )}
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={false} />
       </div>
     </div>
   );
@@ -807,7 +553,6 @@ const SelectLayout = ({ darkMode }) => {
       }}
     >
       <div className="h-36 relative overflow-hidden">
-        {/* Cover photo without green tint */}
         {userData?.coverPhotoURL ? (
           <img
             src={userData.coverPhotoURL}
@@ -979,6 +724,7 @@ const SelectLayout = ({ darkMode }) => {
               </div>
             </div>
           )}
+          <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
         </div>
       </div>
     </div>
@@ -987,7 +733,6 @@ const SelectLayout = ({ darkMode }) => {
   const Layout5 = () => (
     <div className="w-full font-['Inter']" style={{ background: "#0d1b2e" }}>
       <div className="h-36 relative overflow-hidden">
-        {/* Cover photo without brightness reduction */}
         {userData?.coverPhotoURL ? (
           <img
             src={userData.coverPhotoURL}
@@ -1159,6 +904,7 @@ const SelectLayout = ({ darkMode }) => {
               </div>
             </div>
           )}
+          <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
         </div>
       </div>
     </div>
@@ -1287,6 +1033,10 @@ const SelectLayout = ({ darkMode }) => {
               </div>
             </div>
           )}
+          <ConnectButton
+            onClick={() => setShowConnectForm(true)}
+            dark={false}
+          />
         </div>
       </div>
     </div>
@@ -1332,19 +1082,11 @@ const SelectLayout = ({ darkMode }) => {
           </p>
         )}
 
-        <button
-          className="w-full py-3 rounded-xl text-sm font-medium mb-4"
-          style={{
-            background: "rgba(255,255,255,0.15)",
-            border: "0.5px solid rgba(255,255,255,0.25)",
-          }}
-        >
-          Let's connect
-        </button>
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
 
         {/* Skills Section */}
         {userData?.skills && (
-          <div className="w-full mb-4">
+          <div className="w-full mb-4 mt-4">
             <h3
               className="text-xs font-bold mb-2 uppercase tracking-wider"
               style={{ color: "rgba(255,255,255,0.5)" }}
@@ -1372,7 +1114,6 @@ const SelectLayout = ({ darkMode }) => {
         )}
 
         <div className="w-full space-y-2">
-          {/* Phone */}
           {userData?.phoneNumber && (
             <a
               href={`tel:${userData.phoneNumber}`}
@@ -1394,8 +1135,6 @@ const SelectLayout = ({ darkMode }) => {
               <span className="text-xs opacity-40">↗</span>
             </a>
           )}
-
-          {/* Email */}
           {userData?.email && (
             <a
               href={`mailto:${userData.email}`}
@@ -1415,11 +1154,12 @@ const SelectLayout = ({ darkMode }) => {
               <span className="text-xs opacity-40">↗</span>
             </a>
           )}
-
-          {/* Location */}
           {userData?.location && (
-            <div
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline"
               style={{ background: "rgba(255,255,255,0.08)" }}
             >
               <div
@@ -1429,11 +1169,11 @@ const SelectLayout = ({ darkMode }) => {
                 <FaMapMarkerAlt />
               </div>
               <div className="flex-1">
-                <div className="text-xs font-medium">Location</div>
+                <div className="text-xs font-medium">View Location</div>
               </div>
-            </div>
+              <span className="text-xs opacity-40">↗</span>
+            </a>
           )}
-          {/* Social Links */}
           {Object.entries(userData?.socialLinks || {})
             .filter(([, v]) => v)
             .map(([p, url]) => (
@@ -1507,19 +1247,11 @@ const SelectLayout = ({ darkMode }) => {
           </p>
         )}
 
-        <button
-          className="w-full py-3 rounded-xl text-sm font-medium mb-4"
-          style={{
-            background: "rgba(255,255,255,0.08)",
-            border: "0.5px solid rgba(255,255,255,0.15)",
-          }}
-        >
-          Let's connect
-        </button>
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={true} />
 
         {/* Skills Section */}
         {userData?.skills && (
-          <div className="w-full mb-4">
+          <div className="w-full mb-4 mt-4">
             <h3
               className="text-xs font-bold mb-2 uppercase tracking-wider"
               style={{ color: "rgba(255,255,255,0.4)" }}
@@ -1548,7 +1280,6 @@ const SelectLayout = ({ darkMode }) => {
         )}
 
         <div className="w-full space-y-2">
-          {/* Phone */}
           {userData?.phoneNumber && (
             <a
               href={`tel:${userData.phoneNumber}`}
@@ -1573,8 +1304,6 @@ const SelectLayout = ({ darkMode }) => {
               <span className="text-xs opacity-35">↗</span>
             </a>
           )}
-
-          {/* Email */}
           {userData?.email && (
             <a
               href={`mailto:${userData.email}`}
@@ -1597,26 +1326,29 @@ const SelectLayout = ({ darkMode }) => {
               <span className="text-xs opacity-35">↗</span>
             </a>
           )}
-
-          {/* Location */}
           {userData?.location && (
-            <div
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-              style={{ background: "rgba(255,255,255,0.08)" }}
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white no-underline"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "0.5px solid rgba(255,255,255,0.08)",
+              }}
             >
               <div
                 className="w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.12)" }}
+                style={{ background: "rgba(255,255,255,0.1)" }}
               >
                 <FaMapMarkerAlt />
               </div>
               <div className="flex-1">
-                <div className="text-xs font-medium">Location</div>
+                <div className="text-xs font-medium">View Location</div>
               </div>
-            </div>
+              <span className="text-xs opacity-35">↗</span>
+            </a>
           )}
-
-          {/* Social Links */}
           {Object.entries(userData?.socialLinks || {})
             .filter(([, v]) => v)
             .map(([p, url]) => (
@@ -1684,13 +1416,11 @@ const SelectLayout = ({ darkMode }) => {
           </p>
         )}
 
-        <button className="w-full py-3 rounded-xl text-sm font-medium mb-4 bg-gray-900 text-white">
-          Let's connect
-        </button>
+        <ConnectButton onClick={() => setShowConnectForm(true)} dark={false} />
 
         {/* Skills Section */}
         {userData?.skills && (
-          <div className="w-full mb-4">
+          <div className="w-full mb-4 mt-4">
             <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">
               Expertise
             </h3>
@@ -1711,7 +1441,6 @@ const SelectLayout = ({ darkMode }) => {
         )}
 
         <div className="w-full space-y-2">
-          {/* Phone */}
           {userData?.phoneNumber && (
             <a
               href={`tel:${userData.phoneNumber}`}
@@ -1730,8 +1459,6 @@ const SelectLayout = ({ darkMode }) => {
               <span className="text-xs text-gray-400">↗</span>
             </a>
           )}
-
-          {/* Email */}
           {userData?.email && (
             <a
               href={`mailto:${userData.email}`}
@@ -1752,10 +1479,12 @@ const SelectLayout = ({ darkMode }) => {
               <span className="text-xs text-gray-400">↗</span>
             </a>
           )}
-          {/* Location - Fixed with red background */}
           {userData?.location && (
-            <div
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(userData.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl no-underline"
               style={{ background: "#f9fafb", border: "0.5px solid #e5e7eb" }}
             >
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-red-500">
@@ -1763,12 +1492,12 @@ const SelectLayout = ({ darkMode }) => {
               </div>
               <div className="flex-1">
                 <div className="text-xs font-medium text-gray-900">
-                  Location
+                  View Location
                 </div>
               </div>
-            </div>
+              <span className="text-xs text-gray-400">↗</span>
+            </a>
           )}
-          {/* Social Links */}
           {Object.entries(userData?.socialLinks || {})
             .filter(([, v]) => v)
             .map(([p, url]) => (
@@ -1798,319 +1527,3 @@ const SelectLayout = ({ darkMode }) => {
       </div>
     </div>
   );
-
-  const layouts = [
-    { id: 1, component: <Layout1 /> },
-    { id: 2, component: <Layout2 /> },
-    { id: 3, component: <Layout3 /> },
-    { id: 4, component: <Layout4 /> },
-    { id: 5, component: <Layout5 /> },
-    { id: 6, component: <Layout6 /> },
-    { id: 7, component: <Layout7 /> },
-    { id: 8, component: <Layout8 /> },
-    { id: 9, component: <Layout9 /> },
-  ];
-
-  // ─── TOUCH SWIPE ────────────────────────────────────────────────────────────
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientX);
-    setTouchEnd(null);
-    setDragOffset(0);
-  };
-
-  const onTouchMove = (e) => {
-    const current = e.targetTouches[0].clientX;
-    setTouchEnd(current);
-    if (touchStart !== null) {
-      const offset = current - touchStart;
-      setDragOffset(Math.max(-120, Math.min(120, offset)));
-    }
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) {
-      setDragOffset(0);
-      return;
-    }
-    const distance = touchStart - touchEnd;
-    const goNext =
-      distance > minSwipeDistance && currentIndex < layouts.length - 1;
-    const goPrev = distance < -minSwipeDistance && currentIndex > 0;
-
-    if (goNext || goPrev) {
-      setIsAnimating(true);
-      setSlideDirection(goNext ? "left" : "right");
-      setDragOffset(goNext ? -window.innerWidth : window.innerWidth);
-      setTimeout(() => {
-        setCurrentIndex((i) => (goNext ? i + 1 : i - 1));
-        setDragOffset(0);
-        setIsAnimating(false);
-        setSlideDirection(null);
-      }, 280);
-    } else {
-      setDragOffset(0);
-    }
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-  const goToIndex = (newIndex) => {
-    if (newIndex === currentIndex) return;
-    setIsAnimating(true);
-    setSlideDirection(newIndex > currentIndex ? "left" : "right");
-    setDragOffset(
-      newIndex > currentIndex ? -window.innerWidth : window.innerWidth,
-    );
-    setTimeout(() => {
-      setCurrentIndex(newIndex);
-      setDragOffset(0);
-      setIsAnimating(false);
-      setSlideDirection(null);
-    }, 280);
-  };
-
-  if (!user || !userData) {
-    return (
-      <div
-        className={`min-h-screen ${bgClass} flex items-center justify-center`}
-      >
-        <div
-          className={`w-10 h-10 border-2 ${darkMode ? "border-gray-700 border-t-white" : "border-gray-200 border-t-gray-900"} rounded-full animate-spin`}
-        />
-      </div>
-    );
-  }
-
-  const currentLayout = layouts[currentIndex];
-
-  return (
-    <div className={`min-h-screen ${bgClass}`}>
-      <Toast
-        message={toastMessage}
-        visible={toastVisible}
-        darkMode={darkMode}
-      />
-
-      {/* ── MOBILE ── */}
-      <div className="md:hidden flex flex-col h-screen">
-        <div
-          className={`flex items-center justify-between px-4 pt-4 pb-2 flex-shrink-0 ${mobileHeaderBgClass}`}
-        >
-          <div>
-            <h2 className={`text-base font-semibold ${textClass}`}>
-              Choose a theme
-            </h2>
-            <p className={`text-xs ${textSubClass} mt-0.5`}>
-              Double-tap to select
-            </p>
-          </div>
-          <span className={`text-sm ${textSubClass}`}>
-            {currentIndex + 1} / {layouts.length}
-          </span>
-        </div>
-
-        <div className="flex justify-center gap-1.5 pb-3 flex-shrink-0">
-          {layouts.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goToIndex(i)}
-              className={`rounded-full transition-all ${i === currentIndex ? `w-5 h-2 ${dotActiveClass}` : `w-2 h-2 ${dotInactiveClass}`}`}
-            />
-          ))}
-        </div>
-
-        <div
-          className="flex-1 overflow-y-auto px-4 pb-4"
-          style={{ minHeight: 0 }}
-        >
-          <div className="relative rounded-2xl overflow-hidden">
-            {selectedLayout === currentLayout.id && (
-              <div
-                className={`absolute inset-0 ring-2 ${selectedRingClass} rounded-2xl z-10 pointer-events-none`}
-              />
-            )}
-
-            {selectedLayout === currentLayout.id && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: 10,
-                  right: 10,
-                  zIndex: 20,
-                  background: darkMode ? "#1d4ed8" : "#2563eb",
-                  color: "#fff",
-                  fontSize: "0.62rem",
-                  fontWeight: 700,
-                  padding: "0.2rem 0.55rem",
-                  borderRadius: "2rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                  pointerEvents: "none",
-                }}
-              >
-                <FaCheckCircle style={{ fontSize: "0.6rem" }} /> Selected
-              </div>
-            )}
-
-            <div
-              className="w-full rounded-2xl overflow-hidden"
-              style={{
-                transform: `translateX(${dragOffset}px) scale(${isAnimating ? 0.97 : dragOffset !== 0 ? Math.max(0.94, 1 - Math.abs(dragOffset) / 800) : 1})`,
-                transition: isAnimating
-                  ? "transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease"
-                  : dragOffset === 0
-                    ? "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)"
-                    : "none",
-                opacity: isAnimating
-                  ? 0
-                  : Math.max(0.6, 1 - Math.abs(dragOffset) / 300),
-              }}
-            >
-              {currentLayout.component}
-            </div>
-
-            <div
-              className="absolute inset-0 z-20"
-              style={{ touchAction: "pan-y" }}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={(e) => {
-                const dx =
-                  touchStart !== null && touchEnd !== null
-                    ? Math.abs(touchStart - touchEnd)
-                    : 0;
-                if (dx < 10) handleMobileDoubleTap();
-                onTouchEnd();
-              }}
-            />
-
-            {currentIndex > 0 && (
-              <button
-                className={`absolute left-2 top-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white text-xl font-bold ${navButtonClass}`}
-                style={{ backdropFilter: "blur(4px)" }}
-                onClick={() => goToIndex(currentIndex - 1)}
-              >
-                ‹
-              </button>
-            )}
-            {currentIndex < layouts.length - 1 && (
-              <button
-                className={`absolute right-2 top-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-white text-xl font-bold ${navButtonClass}`}
-                style={{ backdropFilter: "blur(4px)" }}
-                onClick={() => goToIndex(currentIndex + 1)}
-              >
-                ›
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── DESKTOP ── */}
-      <div className="hidden md:block max-w-7xl mx-auto p-6">
-        <div className="mb-6">
-          <h2 className={`text-xl font-bold ${textClass}`}>Choose a theme</h2>
-          <p className={`text-sm ${textSubClass} mt-1`}>
-            Click "Select" on any layout to apply it
-          </p>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-          {layouts.map((layout) => {
-            const isSelected = selectedLayout === layout.id;
-            return (
-              <div key={layout.id} className="flex flex-col gap-3">
-                <div
-                  className={`rounded-2xl transition-all relative overflow-hidden ${
-                    isSelected
-                      ? `ring-2 ${selectedRingClass} shadow-lg`
-                      : `ring-1 ${darkMode ? "ring-gray-700" : "ring-gray-200"} ${hoverRingClass}`
-                  }`}
-                >
-                  {isSelected && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        right: 10,
-                        zIndex: 10,
-                        background: darkMode ? "#1d4ed8" : "#2563eb",
-                        color: "#fff",
-                        fontSize: "0.62rem",
-                        fontWeight: 700,
-                        padding: "0.2rem 0.55rem",
-                        borderRadius: "2rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.3rem",
-                        pointerEvents: "none",
-                      }}
-                    >
-                      <FaCheckCircle style={{ fontSize: "0.6rem" }} /> Selected
-                    </div>
-                  )}
-
-                  {loading && selectedLayout === layout.id && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        zIndex: 20,
-                        background: "rgba(0,0,0,0.15)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: "1rem",
-                      }}
-                    >
-                      <div
-                        className={`w-6 h-6 border-2 ${darkMode ? "border-white/40 border-t-white" : "border-gray-400 border-t-gray-900"} rounded-full animate-spin`}
-                      />
-                    </div>
-                  )}
-
-                  <div className="w-full rounded-2xl overflow-hidden pointer-events-none">
-                    {layout.component}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleSelectLayout(layout.id)}
-                  disabled={loading && selectedLayout === layout.id}
-                  className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                    isSelected
-                      ? darkMode
-                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30 cursor-default"
-                        : "bg-blue-50 text-blue-600 border border-blue-200 cursor-default"
-                      : darkMode
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-gray-900 text-white hover:bg-gray-700"
-                  } ${loading && selectedLayout === layout.id ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                >
-                  {loading && selectedLayout === layout.id ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span
-                        className={`w-3 h-3 border-2 ${darkMode ? "border-white/30 border-t-white" : "border-gray-400 border-t-gray-900"} rounded-full animate-spin`}
-                      />
-                      Applying...
-                    </span>
-                  ) : isSelected ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <FaCheckCircle size={12} /> Selected
-                    </span>
-                  ) : (
-                    `Select Layout ${layout.id}`
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default SelectLayout;

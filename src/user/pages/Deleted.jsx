@@ -1,10 +1,10 @@
 // src/user/pages/Deleted.jsx - with real-time status listener
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { auth, db } from '../../config/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { auth, db } from "../../config/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
 
 function Deleted() {
   const [isChecking, setIsChecking] = useState(true);
@@ -12,44 +12,44 @@ function Deleted() {
 
   useEffect(() => {
     const currentUser = auth.currentUser;
-    
+
     if (!currentUser) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    
+    const userDocRef = doc(db, "users", currentUser.uid);
+
     // Real-time listener for status changes
     const unsubscribe = onSnapshot(
       userDocRef,
       async (doc) => {
         if (doc.exists()) {
           const status = doc.data()?.accountStatus;
-          
+
           // If status changes to approved, redirect to home
-          if (status === 'approved') {
-            navigate('/home', { replace: true });
+          if (status === "approved") {
+            navigate("/home", { replace: true });
           }
           // If status changes to pending, redirect to pending page
-          else if (status === 'pending') {
-            navigate('/pending', { replace: true });
+          else if (status === "pending") {
+            navigate("/pending", { replace: true });
           }
           // If status changes to rejected, redirect to rejected page
-          else if (status === 'rejected') {
-            navigate('/rejected', { replace: true });
+          else if (status === "rejected") {
+            navigate("/rejected", { replace: true });
           }
         } else {
           // Document doesn't exist, sign out
           await signOut(auth);
-          navigate('/login', { replace: true });
+          navigate("/login", { replace: true });
         }
         setIsChecking(false);
       },
       (error) => {
-        console.error('Error checking status:', error);
+        console.error("Error checking status:", error);
         setIsChecking(false);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -57,7 +57,7 @@ function Deleted() {
 
   const handleSignOut = async () => {
     await signOut(auth);
-    navigate('/login', { replace: true });
+    navigate("/login", { replace: true });
   };
 
   if (isChecking) {
@@ -81,16 +81,35 @@ function Deleted() {
           <div className="relative flex items-center justify-center">
             <motion.div
               animate={{ scale: [1, 1.55, 1], opacity: [0.18, 0, 0.18] }}
-              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{
+                duration: 2.6,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
               className="absolute w-16 h-16 rounded-full bg-red-100"
             />
             <motion.div
               animate={{ scale: [1, 1.28, 1], opacity: [0.25, 0, 0.25] }}
-              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+              transition={{
+                duration: 2.6,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.3,
+              }}
               className="absolute w-16 h-16 rounded-full bg-red-100"
             />
             <div className="relative w-14 h-14 bg-red-50 border border-red-100 rounded-full flex items-center justify-center">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-red-500"
+              >
                 <path d="M3 6h18" />
                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
                 <path d="M8 4V3c0-1 1-2 2-2h4c1 0 2 1 2 2v1" />

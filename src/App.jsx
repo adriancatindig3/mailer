@@ -1,20 +1,20 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from './config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import Login from './user/pages/Login';
-import Register from './user/pages/Register';
-import Home from './user/pages/Home';
-import UpdateProfile from './user/pages/UpdateProfile';
-import ViewQr from './user/pages/ViewQr';
-import SelectLayout from './user/pages/SelectLayout';
-import Pending from './user/pages/Pending';
-import Rejected from './user/pages/Rejected';
-import Deleted from './user/pages/Deleted';
-import AdminDashboard from './admin/AdminDashboard';
-import PublicProfile from './user/pages/PublicProfile';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "./config/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import Login from "./user/pages/Login";
+import Register from "./user/pages/Register";
+import Home from "./user/pages/Home";
+import UpdateProfile from "./user/pages/UpdateProfile";
+import ViewQr from "./user/pages/ViewQr";
+import SelectLayout from "./user/pages/SelectLayout";
+import Pending from "./user/pages/Pending";
+import Rejected from "./user/pages/Rejected";
+import Deleted from "./user/pages/Deleted";
+import AdminDashboard from "./admin/AdminDashboard";
+import PublicProfile from "./user/pages/PublicProfile";
 
 // AdminRoute - ONLY logged-in users with accountType 'admin' can access
 const AdminRoute = ({ children }) => {
@@ -24,20 +24,20 @@ const AdminRoute = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
-      
+
       if (!user) {
         setIsAdmin(false);
         setLoading(false);
         return;
       }
-      
+
       try {
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
-        
+
         if (userDoc.exists()) {
           const accountType = userDoc.data()?.accountType;
-          if (accountType === 'admin') {
+          if (accountType === "admin") {
             setIsAdmin(true);
           } else {
             setIsAdmin(false);
@@ -46,7 +46,7 @@ const AdminRoute = ({ children }) => {
           setIsAdmin(false);
         }
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error("Error checking admin status:", error);
         setIsAdmin(false);
       }
       setLoading(false);
@@ -64,54 +64,54 @@ const AdminRoute = ({ children }) => {
 
   if (!isAdmin && !auth.currentUser) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/home" replace />;
-  
+
   return children;
 };
 
 // Protected route that checks if user is approved and NOT admin
 const ProtectedRoute = ({ children }) => {
-  const [status, setStatus] = useState('loading');
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
+          const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
             const accountType = userDoc.data()?.accountType;
-            
-            if (accountType === 'admin') {
-              setStatus('admin');
+
+            if (accountType === "admin") {
+              setStatus("admin");
               return;
             }
-            
-            if (accountStatus === 'approved') {
-              setStatus('approved');
-            } else if (accountStatus === 'rejected') {
-              setStatus('rejected');
-            } else if (accountStatus === 'deleted') {
-              setStatus('deleted');
+
+            if (accountStatus === "approved") {
+              setStatus("approved");
+            } else if (accountStatus === "rejected") {
+              setStatus("rejected");
+            } else if (accountStatus === "deleted") {
+              setStatus("deleted");
             } else {
-              setStatus('pending');
+              setStatus("pending");
             }
           } else {
-            setStatus('unauthenticated');
+            setStatus("unauthenticated");
           }
         } catch (error) {
-          console.error('Error checking user status:', error);
-          setStatus('unauthenticated');
+          console.error("Error checking user status:", error);
+          setStatus("unauthenticated");
         }
       } else {
-        setStatus('unauthenticated');
+        setStatus("unauthenticated");
       }
     });
     return () => unsubscribe();
   }, []);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
@@ -119,44 +119,44 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
-  if (status === 'admin') return <Navigate to="/admin" replace />;
-  if (status === 'pending') return <Navigate to="/pending" replace />;
-  if (status === 'rejected') return <Navigate to="/rejected" replace />;
-  if (status === 'deleted') return <Navigate to="/deleted" replace />;
-  
+  if (status === "unauthenticated") return <Navigate to="/login" replace />;
+  if (status === "admin") return <Navigate to="/admin" replace />;
+  if (status === "pending") return <Navigate to="/pending" replace />;
+  if (status === "rejected") return <Navigate to="/rejected" replace />;
+  if (status === "deleted") return <Navigate to="/deleted" replace />;
+
   return children;
 };
 
 // Redirects logged-in users away from /login
 const PublicRoute = ({ children }) => {
-  const [status, setStatus] = useState('loading');
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
+          const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists() && userDoc.data()?.accountType === 'admin') {
-            setStatus('admin');
+
+          if (userDoc.exists() && userDoc.data()?.accountType === "admin") {
+            setStatus("admin");
           } else if (!userDoc.exists()) {
-            setStatus('registration');
+            setStatus("registration");
           } else {
-            setStatus('authenticated');
+            setStatus("authenticated");
           }
         } catch (error) {
-          setStatus('authenticated');
+          setStatus("authenticated");
         }
       } else {
-        setStatus('guest');
+        setStatus("guest");
       }
     });
     return () => unsubscribe();
   }, []);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
@@ -164,57 +164,57 @@ const PublicRoute = ({ children }) => {
     );
   }
 
-  if (status === 'registration') return <Navigate to="/register" replace />;
-  if (status === 'authenticated') return <Navigate to="/home" replace />;
-  if (status === 'admin') return <Navigate to="/admin" replace />;
+  if (status === "registration") return <Navigate to="/register" replace />;
+  if (status === "authenticated") return <Navigate to="/home" replace />;
+  if (status === "admin") return <Navigate to="/admin" replace />;
 
   return children;
 };
 
 // Route for register page
 const RegisterRoute = () => {
-  const [status, setStatus] = useState('loading');
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
+          const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (!userDoc.exists()) {
-            setStatus('registration');
+            setStatus("registration");
           } else {
             const accountStatus = userDoc.data()?.accountStatus;
             const accountType = userDoc.data()?.accountType;
-            
-            if (accountType === 'admin') {
-              setStatus('admin');
+
+            if (accountType === "admin") {
+              setStatus("admin");
               return;
             }
-            
-            if (accountStatus === 'approved') {
-              setStatus('approved');
-            } else if (accountStatus === 'rejected') {
-              setStatus('rejected');
-            } else if (accountStatus === 'deleted') {
-              setStatus('deleted');
+
+            if (accountStatus === "approved") {
+              setStatus("approved");
+            } else if (accountStatus === "rejected") {
+              setStatus("rejected");
+            } else if (accountStatus === "deleted") {
+              setStatus("deleted");
             } else {
-              setStatus('pending');
+              setStatus("pending");
             }
           }
         } catch (error) {
-          console.error('Error checking user status:', error);
-          setStatus('unauthenticated');
+          console.error("Error checking user status:", error);
+          setStatus("unauthenticated");
         }
       } else {
-        setStatus('unauthenticated');
+        setStatus("unauthenticated");
       }
     });
     return () => unsubscribe();
   }, []);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
@@ -222,60 +222,60 @@ const RegisterRoute = () => {
     );
   }
 
-  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
-  if (status === 'admin') return <Navigate to="/admin" replace />;
-  if (status === 'approved') return <Navigate to="/home" replace />;
-  if (status === 'pending') return <Navigate to="/pending" replace />;
-  if (status === 'rejected') return <Navigate to="/rejected" replace />;
-  if (status === 'deleted') return <Navigate to="/deleted" replace />;
-  
+  if (status === "unauthenticated") return <Navigate to="/login" replace />;
+  if (status === "admin") return <Navigate to="/admin" replace />;
+  if (status === "approved") return <Navigate to="/home" replace />;
+  if (status === "pending") return <Navigate to="/pending" replace />;
+  if (status === "rejected") return <Navigate to="/rejected" replace />;
+  if (status === "deleted") return <Navigate to="/deleted" replace />;
+
   return <Register />;
 };
 
 // Route for pending page
 const PendingRoute = () => {
-  const [status, setStatus] = useState('loading');
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
+          const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
             const accountType = userDoc.data()?.accountType;
-            
-            if (accountType === 'admin') {
-              setStatus('admin');
+
+            if (accountType === "admin") {
+              setStatus("admin");
               return;
             }
-            
-            if (accountStatus === 'approved') {
-              setStatus('approved');
-            } else if (accountStatus === 'rejected') {
-              setStatus('rejected');
-            } else if (accountStatus === 'deleted') {
-              setStatus('deleted');
+
+            if (accountStatus === "approved") {
+              setStatus("approved");
+            } else if (accountStatus === "rejected") {
+              setStatus("rejected");
+            } else if (accountStatus === "deleted") {
+              setStatus("deleted");
             } else {
-              setStatus('pending');
+              setStatus("pending");
             }
           } else {
-            setStatus('unauthenticated');
+            setStatus("unauthenticated");
           }
         } catch (error) {
-          console.error('Error checking user status:', error);
-          setStatus('unauthenticated');
+          console.error("Error checking user status:", error);
+          setStatus("unauthenticated");
         }
       } else {
-        setStatus('unauthenticated');
+        setStatus("unauthenticated");
       }
     });
     return () => unsubscribe();
   }, []);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
@@ -283,59 +283,59 @@ const PendingRoute = () => {
     );
   }
 
-  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
-  if (status === 'admin') return <Navigate to="/admin" replace />;
-  if (status === 'approved') return <Navigate to="/home" replace />;
-  if (status === 'rejected') return <Navigate to="/rejected" replace />;
-  if (status === 'deleted') return <Navigate to="/deleted" replace />;
-  
+  if (status === "unauthenticated") return <Navigate to="/login" replace />;
+  if (status === "admin") return <Navigate to="/admin" replace />;
+  if (status === "approved") return <Navigate to="/home" replace />;
+  if (status === "rejected") return <Navigate to="/rejected" replace />;
+  if (status === "deleted") return <Navigate to="/deleted" replace />;
+
   return <Pending />;
 };
 
 // Route for rejected page
 const RejectedRoute = () => {
-  const [status, setStatus] = useState('loading');
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
+          const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
             const accountType = userDoc.data()?.accountType;
-            
-            if (accountType === 'admin') {
-              setStatus('admin');
+
+            if (accountType === "admin") {
+              setStatus("admin");
               return;
             }
-            
-            if (accountStatus === 'rejected') {
-              setStatus('rejected');
-            } else if (accountStatus === 'approved') {
-              setStatus('approved');
-            } else if (accountStatus === 'deleted') {
-              setStatus('deleted');
+
+            if (accountStatus === "rejected") {
+              setStatus("rejected");
+            } else if (accountStatus === "approved") {
+              setStatus("approved");
+            } else if (accountStatus === "deleted") {
+              setStatus("deleted");
             } else {
-              setStatus('pending');
+              setStatus("pending");
             }
           } else {
-            setStatus('unauthenticated');
+            setStatus("unauthenticated");
           }
         } catch (error) {
-          console.error('Error checking user status:', error);
-          setStatus('unauthenticated');
+          console.error("Error checking user status:", error);
+          setStatus("unauthenticated");
         }
       } else {
-        setStatus('unauthenticated');
+        setStatus("unauthenticated");
       }
     });
     return () => unsubscribe();
   }, []);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
@@ -343,64 +343,64 @@ const RejectedRoute = () => {
     );
   }
 
-  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
-  if (status === 'admin') return <Navigate to="/admin" replace />;
-  if (status === 'approved') return <Navigate to="/home" replace />;
-  if (status === 'pending') return <Navigate to="/pending" replace />;
-  if (status === 'deleted') return <Navigate to="/deleted" replace />;
-  
+  if (status === "unauthenticated") return <Navigate to="/login" replace />;
+  if (status === "admin") return <Navigate to="/admin" replace />;
+  if (status === "approved") return <Navigate to="/home" replace />;
+  if (status === "pending") return <Navigate to="/pending" replace />;
+  if (status === "deleted") return <Navigate to="/deleted" replace />;
+
   return <Rejected />;
 };
 
 // Route for deleted page
 const DeletedRoute = () => {
-  const [status, setStatus] = useState('loading');
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
+          const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             const accountStatus = userDoc.data()?.accountStatus;
             const accountType = userDoc.data()?.accountType;
-            
-            if (accountType === 'admin') {
-              setStatus('admin');
+
+            if (accountType === "admin") {
+              setStatus("admin");
               return;
             }
-            
-            if (accountStatus === 'deleted') {
-              setStatus('deleted');
-            } else if (accountStatus === 'approved') {
-              setStatus('approved');
-            } else if (accountStatus === 'rejected') {
-              setStatus('rejected');
+
+            if (accountStatus === "deleted") {
+              setStatus("deleted");
+            } else if (accountStatus === "approved") {
+              setStatus("approved");
+            } else if (accountStatus === "rejected") {
+              setStatus("rejected");
             } else {
-              setStatus('pending');
+              setStatus("pending");
             }
           } else {
-            setStatus('unauthenticated');
+            setStatus("unauthenticated");
           }
         } catch (error) {
-          console.error('Error checking user status:', error);
-          setStatus('unauthenticated');
+          console.error("Error checking user status:", error);
+          setStatus("unauthenticated");
         }
       } else {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('deleted') === 'true') {
-          setStatus('deleted');
+        if (urlParams.get("deleted") === "true") {
+          setStatus("deleted");
         } else {
-          setStatus('unauthenticated');
+          setStatus("unauthenticated");
         }
       }
     });
     return () => unsubscribe();
   }, []);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
@@ -408,12 +408,12 @@ const DeletedRoute = () => {
     );
   }
 
-  if (status === 'admin') return <Navigate to="/admin" replace />;
-  if (status === 'approved') return <Navigate to="/home" replace />;
-  if (status === 'pending') return <Navigate to="/pending" replace />;
-  if (status === 'rejected') return <Navigate to="/rejected" replace />;
-  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
-  
+  if (status === "admin") return <Navigate to="/admin" replace />;
+  if (status === "approved") return <Navigate to="/home" replace />;
+  if (status === "pending") return <Navigate to="/pending" replace />;
+  if (status === "rejected") return <Navigate to="/rejected" replace />;
+  if (status === "unauthenticated") return <Navigate to="/login" replace />;
+
   return <Deleted />;
 };
 
@@ -423,24 +423,73 @@ function App() {
       <Routes>
         {/* PUBLIC ROUTES - No authentication required */}
         <Route path="/profile/:userId" element={<PublicProfile />} />
-        
+
         {/* AUTH ROUTES */}
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
         <Route path="/register" element={<RegisterRoute />} />
         <Route path="/pending" element={<PendingRoute />} />
         <Route path="/rejected" element={<RejectedRoute />} />
         <Route path="/deleted" element={<DeletedRoute />} />
-        
+
         {/* ADMIN ONLY ROUTE - Protected */}
-        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-        
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+
         {/* USER ROUTES */}
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/updateprofile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />
-        <Route path="/viewqr" element={<ProtectedRoute><ViewQr /></ProtectedRoute>} />
-        <Route path="/selectlayout" element={<ProtectedRoute><SelectLayout /></ProtectedRoute>} />
-        
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/updateprofile"
+          element={
+            <ProtectedRoute>
+              <UpdateProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/viewqr"
+          element={
+            <ProtectedRoute>
+              <ViewQr />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/selectlayout"
+          element={
+            <ProtectedRoute>
+              <SelectLayout />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

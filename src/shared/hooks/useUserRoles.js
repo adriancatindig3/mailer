@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { db } from '../../config/firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import { db } from "../../config/firebase";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 
 export const useUserRoles = () => {
   const [positionOptions, setPositionOptions] = useState([]);
@@ -9,8 +9,8 @@ export const useUserRoles = () => {
   useEffect(() => {
     // Create query for userRoles collection
     const rolesQuery = query(
-      collection(db, 'userRoles'),
-      orderBy('createdAt', 'asc')
+      collection(db, "userRoles"),
+      orderBy("createdAt", "asc"),
     );
 
     // Real-time listener
@@ -22,12 +22,12 @@ export const useUserRoles = () => {
           setPositionOptions([]);
         } else {
           // Map Firestore data to options
-          const roles = snapshot.docs.map(doc => {
+          const roles = snapshot.docs.map((doc) => {
             const data = doc.data();
-            return { 
-              value: data.label, 
+            return {
+              value: data.label,
               label: data.label,
-              color: data.color 
+              color: data.color,
             };
           });
           setPositionOptions(roles);
@@ -35,11 +35,11 @@ export const useUserRoles = () => {
         setRolesLoading(false);
       },
       (error) => {
-        console.error('Error loading roles:', error);
+        console.error("Error loading roles:", error);
         // ✅ NO FALLBACKS - Return empty array on error too
         setPositionOptions([]);
         setRolesLoading(false);
-      }
+      },
     );
 
     // Cleanup listener on unmount

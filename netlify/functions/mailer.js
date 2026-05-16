@@ -4,19 +4,27 @@ const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
 // Send email to the PROFILE OWNER (dynamic email from Firebase)
-export const sendEmailToOwner = async (ownerEmail, ownerName, visitorEmail, visitorMessage, visitorName, visitorCompany, visitorPhone) => {
+export const sendEmailToOwner = async (
+  ownerEmail,
+  ownerName,
+  visitorEmail,
+  visitorMessage,
+  visitorName,
+  visitorCompany,
+  visitorPhone,
+) => {
   await transporter.sendMail({
     from: `e-CARD <${process.env.EMAIL_USER}>`,
     to: ownerEmail,
     subject: `New Connection Request from ${visitorName}`,
-    
-    text: `You have received a new connection request via e-CARD\n\nFrom: ${visitorName}\nEmail: ${visitorEmail}\nCompany: ${visitorCompany || 'Not provided'}\nPhone: ${visitorPhone || 'Not provided'}\n\nMessage:\n${visitorMessage}\n\nReply directly to ${visitorEmail} to connect.`,
-    
+
+    text: `You have received a new connection request via e-CARD\n\nFrom: ${visitorName}\nEmail: ${visitorEmail}\nCompany: ${visitorCompany || "Not provided"}\nPhone: ${visitorPhone || "Not provided"}\n\nMessage:\n${visitorMessage}\n\nReply directly to ${visitorEmail} to connect.`,
+
     html: `
       <!DOCTYPE html>
       <html>
@@ -60,18 +68,26 @@ export const sendEmailToOwner = async (ownerEmail, ownerName, visitorEmail, visi
                               <td style="font-size: 13px; color: #666; font-weight: 600;">Email:</td>
                               <td style="font-size: 14px; color: #333;"><a href="mailto:${visitorEmail}" style="color: #2c5f2d; text-decoration: none;">${visitorEmail}</a></td>
                             </tr>
-                            ${visitorCompany ? `
+                            ${
+                              visitorCompany
+                                ? `
                             <tr>
                               <td style="font-size: 13px; color: #666; font-weight: 600;">Company:</td>
                               <td style="font-size: 14px; color: #333;">${visitorCompany}</td>
                             </tr>
-                            ` : ''}
-                            ${visitorPhone ? `
+                            `
+                                : ""
+                            }
+                            ${
+                              visitorPhone
+                                ? `
                             <tr>
                               <td style="font-size: 13px; color: #666; font-weight: 600;">Phone:</td>
                               <td style="font-size: 14px; color: #333;">+63${visitorPhone}</td>
                             </tr>
-                            ` : ''}
+                            `
+                                : ""
+                            }
                           </table>
                         </td>
                       </tr>
@@ -80,7 +96,7 @@ export const sendEmailToOwner = async (ownerEmail, ownerName, visitorEmail, visi
                     <!-- Message Box -->
                     <div style="background: #f0f7f0; border-left: 4px solid #2c5f2d; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
                       <p style="margin: 0 0 8px 0; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Message</p>
-                      <p style="margin: 0; font-size: 15px; color: #333; line-height: 1.6;">${visitorMessage.replace(/\n/g, '<br>')}</p>
+                      <p style="margin: 0; font-size: 15px; color: #333; line-height: 1.6;">${visitorMessage.replace(/\n/g, "<br>")}</p>
                     </div>
                     
                     <!-- Action Button -->
@@ -107,19 +123,26 @@ export const sendEmailToOwner = async (ownerEmail, ownerName, visitorEmail, visi
         </table>
       </body>
       </html>
-    `
+    `,
   });
 };
 
 // Send confirmation email to the VISITOR (with ALL submitted data - same design as owner)
-export const sendEmailToVisitor = async (visitorEmail, visitorName, visitorCompany, visitorPhone, visitorMessage, ownerName) => {
+export const sendEmailToVisitor = async (
+  visitorEmail,
+  visitorName,
+  visitorCompany,
+  visitorPhone,
+  visitorMessage,
+  ownerName,
+) => {
   await transporter.sendMail({
     from: `e-CARD <${process.env.EMAIL_USER}>`,
     to: visitorEmail,
     subject: `Your Connection Request to ${ownerName} - Confirmation`,
-    
-    text: `Hello ${visitorName}! 👋\n\nThank you for connecting with ${ownerName} via e-CARD.\n\nHere's a summary of your request:\n\nName: ${visitorName}\nEmail: ${visitorEmail}\nCompany: ${visitorCompany || 'Not provided'}\nPhone: ${visitorPhone || 'Not provided'}\n\nYour Message:\n"${visitorMessage}"\n\n${ownerName} will respond to you directly at this email address.\n\nBest regards,\ne-CARD Team`,
-    
+
+    text: `Hello ${visitorName}! 👋\n\nThank you for connecting with ${ownerName} via e-CARD.\n\nHere's a summary of your request:\n\nName: ${visitorName}\nEmail: ${visitorEmail}\nCompany: ${visitorCompany || "Not provided"}\nPhone: ${visitorPhone || "Not provided"}\n\nYour Message:\n"${visitorMessage}"\n\n${ownerName} will respond to you directly at this email address.\n\nBest regards,\ne-CARD Team`,
+
     html: `
       <!DOCTYPE html>
       <html>
@@ -163,18 +186,26 @@ export const sendEmailToVisitor = async (visitorEmail, visitorName, visitorCompa
                               <td style="font-size: 13px; color: #666; font-weight: 600;">Email:</td>
                               <td style="font-size: 14px; color: #333;">${visitorEmail}</td>
                             </tr>
-                            ${visitorCompany ? `
+                            ${
+                              visitorCompany
+                                ? `
                             <tr>
                               <td style="font-size: 13px; color: #666; font-weight: 600;">Company:</td>
                               <td style="font-size: 14px; color: #333;">${visitorCompany}</td>
                             </tr>
-                            ` : ''}
-                            ${visitorPhone ? `
+                            `
+                                : ""
+                            }
+                            ${
+                              visitorPhone
+                                ? `
                             <tr>
                               <td style="font-size: 13px; color: #666; font-weight: 600;">Phone:</td>
                               <td style="font-size: 14px; color: #333;">+63${visitorPhone}</td>
                             </tr>
-                            ` : ''}
+                            `
+                                : ""
+                            }
                           </table>
                         </td>
                       </tr>
@@ -183,7 +214,7 @@ export const sendEmailToVisitor = async (visitorEmail, visitorName, visitorCompa
                     <!-- Your Message Box -->
                     <div style="background: #f0f7f0; border-left: 4px solid #2c5f2d; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
                       <p style="margin: 0 0 8px 0; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Your Message</p>
-                      <p style="margin: 0; font-size: 15px; color: #333; line-height: 1.6;">${visitorMessage.replace(/\n/g, '<br>')}</p>
+                      <p style="margin: 0; font-size: 15px; color: #333; line-height: 1.6;">${visitorMessage.replace(/\n/g, "<br>")}</p>
                     </div>
                     
                     <!-- Info Box -->
@@ -210,6 +241,6 @@ export const sendEmailToVisitor = async (visitorEmail, visitorName, visitorCompa
         </table>
       </body>
       </html>
-    `
+    `,
   });
 };

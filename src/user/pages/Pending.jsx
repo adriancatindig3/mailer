@@ -1,10 +1,10 @@
 // src/user/pages/Pending.jsx - with real-time status listener and sign out
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { auth, db } from '../../config/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { auth, db } from "../../config/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
 
 function Pending() {
   const [isChecking, setIsChecking] = useState(true);
@@ -12,40 +12,40 @@ function Pending() {
 
   useEffect(() => {
     const currentUser = auth.currentUser;
-    
+
     if (!currentUser) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    
+    const userDocRef = doc(db, "users", currentUser.uid);
+
     // Real-time listener for status changes
     const unsubscribe = onSnapshot(
       userDocRef,
       (doc) => {
         if (doc.exists()) {
           const status = doc.data()?.accountStatus;
-          
+
           // If status changes to approved, redirect to home
-          if (status === 'approved') {
-            navigate('/home', { replace: true });
+          if (status === "approved") {
+            navigate("/home", { replace: true });
           }
           // If status changes to rejected, redirect to rejected page
-          else if (status === 'rejected') {
-            navigate('/rejected', { replace: true });
+          else if (status === "rejected") {
+            navigate("/rejected", { replace: true });
           }
           // If status changes to deleted, redirect to login
-          else if (status === 'deleted') {
-            navigate('/login?deleted=true', { replace: true });
+          else if (status === "deleted") {
+            navigate("/login?deleted=true", { replace: true });
           }
         }
         setIsChecking(false);
       },
       (error) => {
-        console.error('Error checking status:', error);
+        console.error("Error checking status:", error);
         setIsChecking(false);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -53,7 +53,7 @@ function Pending() {
 
   const handleSignOut = async () => {
     await signOut(auth);
-    navigate('/login', { replace: true });
+    navigate("/login", { replace: true });
   };
 
   if (isChecking) {
@@ -77,16 +77,35 @@ function Pending() {
           <div className="relative flex items-center justify-center">
             <motion.div
               animate={{ scale: [1, 1.55, 1], opacity: [0.18, 0, 0.18] }}
-              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{
+                duration: 2.6,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
               className="absolute w-16 h-16 rounded-full bg-amber-100"
             />
             <motion.div
               animate={{ scale: [1, 1.28, 1], opacity: [0.25, 0, 0.25] }}
-              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+              transition={{
+                duration: 2.6,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.3,
+              }}
               className="absolute w-16 h-16 rounded-full bg-amber-100"
             />
             <div className="relative w-14 h-14 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-amber-500"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>

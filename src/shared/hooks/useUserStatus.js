@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { auth, db } from '../../config/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { auth, db } from "../../config/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
 export const useUserStatus = () => {
   const [status, setStatus] = useState(null);
@@ -11,56 +11,56 @@ export const useUserStatus = () => {
 
   useEffect(() => {
     const currentUser = auth.currentUser;
-    
+
     if (!currentUser) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    
+    const userDocRef = doc(db, "users", currentUser.uid);
+
     // Real-time listener for user status
     const unsubscribe = onSnapshot(
       userDocRef,
       (doc) => {
         if (doc.exists()) {
           const data = doc.data();
-          const currentStatus = data.accountStatus || 'pending';
+          const currentStatus = data.accountStatus || "pending";
           setStatus(currentStatus);
           setUserData(data);
           setLoading(false);
 
           // Auto-redirect based on status change
-          switch(currentStatus) {
-            case 'approved':
-              navigate('/home', { replace: true });
+          switch (currentStatus) {
+            case "approved":
+              navigate("/home", { replace: true });
               break;
-            case 'pending':
-              if (window.location.pathname !== '/pending') {
-                navigate('/pending', { replace: true });
+            case "pending":
+              if (window.location.pathname !== "/pending") {
+                navigate("/pending", { replace: true });
               }
               break;
-            case 'rejected':
-              if (window.location.pathname !== '/rejected') {
-                navigate('/rejected', { replace: true });
+            case "rejected":
+              if (window.location.pathname !== "/rejected") {
+                navigate("/rejected", { replace: true });
               }
               break;
-            case 'deleted':
-              navigate('/login?deleted=true', { replace: true });
+            case "deleted":
+              navigate("/login?deleted=true", { replace: true });
               break;
             default:
-              navigate('/pending', { replace: true });
+              navigate("/pending", { replace: true });
           }
         } else {
           // User document doesn't exist
           setLoading(false);
-          navigate('/login');
+          navigate("/login");
         }
       },
       (error) => {
-        console.error('Error listening to user status:', error);
+        console.error("Error listening to user status:", error);
         setLoading(false);
-      }
+      },
     );
 
     // Cleanup listener
