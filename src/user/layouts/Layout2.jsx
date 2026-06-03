@@ -44,7 +44,11 @@ const Layout2 = ({ userData, schoolLogo, onConnect }) => (
           )}
           {userData?.company && (
             <div className="flex items-center gap-1 mt-1">
-              <SchoolLogo schoolLogo={schoolLogo} className="w-3 h-3" style={{ opacity: 0.8 }} />
+              <SchoolLogo
+                schoolLogo={schoolLogo}
+                className="w-3 h-3"
+                style={{ opacity: 0.8 }}
+              />
               <span
                 className="text-xs"
                 style={{ color: "rgba(255,255,255,0.5)" }}
@@ -74,24 +78,15 @@ const Layout2 = ({ userData, schoolLogo, onConnect }) => (
           <div className="text-lg font-bold">
             {userData?.skills?.split(",").length || 0}
           </div>
-          <div
-            className="text-xs"
-            style={{ color: "rgba(255,255,255,0.45)" }}
-          >
+          <div className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
             Skills
           </div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold">
-            {
-              Object.values(userData?.socialLinks || {}).filter(Boolean)
-                .length
-            }
+            {Object.values(userData?.socialLinks || {}).filter(Boolean).length}
           </div>
-          <div
-            className="text-xs"
-            style={{ color: "rgba(255,255,255,0.45)" }}
-          >
+          <div className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
             Links
           </div>
         </div>

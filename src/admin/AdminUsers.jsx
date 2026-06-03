@@ -16,6 +16,9 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
+  Link2,
+  Copy,
+  Check,
 } from "lucide-react";
 
 const AdminUsers = ({
@@ -35,8 +38,12 @@ const AdminUsers = ({
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionType, setActionType] = useState(null);
   const [expandedRow, setExpandedRow] = useState(null);
+  const [copiedUserId, setCopiedUserId] = useState(null);
 
   const dm = darkMode;
+
+  // Base URL for profile links - change this to your actual domain
+  const BASE_URL = window.location.origin; // or "https://yourdomain.com"
 
   const roleFilterOptions = [
     { id: "all", label: "All Roles" },
@@ -69,6 +76,22 @@ const AdminUsers = ({
       border: "rgba(96,165,250,0.35)",
       color: "#60a5fa",
     };
+  };
+
+  // Generate profile link for a user
+  const getProfileLink = (userId) => {
+    return `${BASE_URL}/profile/${userId}`;
+  };
+
+  // Copy link to clipboard
+  const copyToClipboard = async (text, userId) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedUserId(userId);
+      setTimeout(() => setCopiedUserId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
   };
 
   const handleApproveUser = async (userId) => {
@@ -229,7 +252,7 @@ const AdminUsers = ({
     border: "none",
     transition: "opacity 0.15s, transform 0.1s",
   };
-  // AFTER
+  
   const approveBtn = {
     ...actionBtnBase,
     background: "#22c55e",
@@ -261,12 +284,31 @@ const AdminUsers = ({
     letterSpacing: "0.03em",
   };
 
-  // Mobile card for each user
+  const copyBtnStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.25rem",
+    padding: "0.2rem 0.5rem",
+    background: dm ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)",
+    border: `1px solid ${dm ? "rgba(59,130,246,0.3)" : "rgba(59,130,246,0.2)"}`,
+    borderRadius: "0.375rem",
+    fontSize: "0.6rem",
+    fontWeight: 500,
+    color: "#3b82f6",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    whiteSpace: "nowrap",
+    transition: "all 0.15s",
+  };
+
+  // Mobile card for each user with profile link
   const MobileUserCard = ({ u }) => {
     const statusCfg = STATUS_CONFIG[u.accountStatus] || STATUS_CONFIG.pending;
     const roleCfg = getRoleCfg(u.occupation);
     const isPending = u.accountStatus === "pending";
     const isExpanded = expandedRow === u.id;
+    const profileLink = getProfileLink(u.id);
+    const isCopied = copiedUserId === u.id;
 
     return (
       <div
@@ -317,7 +359,7 @@ const AdminUsers = ({
             )}
           </div>
 
-          {/* Name + role */}
+          {/* Name + role + email */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
@@ -401,7 +443,7 @@ const AdminUsers = ({
           </div>
         </div>
 
-        {/* Expanded details + actions */}
+        {/* Expanded details - includes profile link and actions */}
         {isExpanded && (
           <div
             style={{
@@ -410,90 +452,79 @@ const AdminUsers = ({
               paddingTop: "0.75rem",
             }}
           >
+            {/* Profile Link Section */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "0.5rem 1rem",
-                marginBottom: "0.875rem",
+                marginBottom: "0.75rem",
+                padding: "0.5rem",
+                background: dm ? "rgba(59,130,246,0.05)" : "rgba(59,130,246,0.03)",
+                borderRadius: "0.5rem",
+                border: `1px solid ${dm ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)"}`,
               }}
             >
-              {u.phoneNumber && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: "0.58rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      color: dm ? "#475569" : "#94a3b8",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Phone
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: dm ? "#cbd5e1" : "#334155",
-                    }}
-                  >
-                    {u.phoneNumber}
-                  </div>
-                </div>
-              )}
-              {u.createdAt && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: "0.58rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      color: dm ? "#475569" : "#94a3b8",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Joined
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: dm ? "#cbd5e1" : "#334155",
-                    }}
-                  >
-                    {formatDate(u.createdAt)}
-                  </div>
-                </div>
-              )}
-              {u.bio && (
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <div
-                    style={{
-                      fontSize: "0.58rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      color: dm ? "#475569" : "#94a3b8",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Bio
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: dm ? "#94a3b8" : "#64748b",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {u.bio}
-                  </div>
-                </div>
-              )}
+              <div
+                style={{
+                  fontSize: "0.58rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "#3b82f6",
+                  marginBottom: "0.35rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                }}
+              >
+                <Link2 size={10} /> NFC CARD LINK
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "0.5rem",
+                }}
+              >
+                <code
+                  style={{
+                    fontSize: "0.65rem",
+                    color: dm ? "#94a3b8" : "#475569",
+                    background: dm ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.04)",
+                    padding: "0.25rem 0.4rem",
+                    borderRadius: "0.25rem",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    flex: 1,
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {profileLink}
+                </code>
+                <button
+                  onClick={() => copyToClipboard(profileLink, u.id)}
+                  style={{
+                    ...copyBtnStyle,
+                    background: isCopied
+                      ? "#22c55e"
+                      : dm
+                        ? "rgba(59,130,246,0.15)"
+                        : "rgba(59,130,246,0.1)",
+                    color: isCopied ? "white" : "#3b82f6",
+                    border: isCopied ? "1px solid #22c55e" : undefined,
+                  }}
+                >
+                  {isCopied ? (
+                    <Check size={10} />
+                  ) : (
+                    <Copy size={10} />
+                  )}
+                  {isCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
             </div>
 
-            {/* Action buttons - FIXED: Removed approve button for rejected users */}
+            {/* Action buttons */}
             <div style={{ display: "flex", gap: "0.5rem" }}>
               {isPending && (
                 <>
@@ -522,7 +553,6 @@ const AdminUsers = ({
                   <Trash2 size={12} /> Delete
                 </button>
               )}
-              {/* Removed the approve button for rejected users */}
             </div>
           </div>
         )}
@@ -659,7 +689,7 @@ const AdminUsers = ({
         )}
       </div>
 
-      {/* ── DESKTOP: table ── */}
+      {/* ── DESKTOP: table with Profile Link column ── */}
       <div className="hidden sm:block" style={{ ...card, overflow: "hidden" }}>
         {loading ? (
           <div
@@ -693,20 +723,12 @@ const AdminUsers = ({
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
-                minWidth: 820,
+                minWidth: 850,
               }}
             >
               <thead>
                 <tr>
-                  {[
-                    "User",
-                    "Email",
-                    "Position",
-                    "Status",
-                    "Phone",
-                    "Joined",
-                    "Actions",
-                  ].map((h) => (
+                  {["User", "Email", "Position", "Status", "Profile Link", "Actions"].map((h) => (
                     <th key={h} style={thStyle}>
                       {h}
                     </th>
@@ -717,7 +739,7 @@ const AdminUsers = ({
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={6}
                       style={{
                         padding: "3rem",
                         textAlign: "center",
@@ -734,6 +756,8 @@ const AdminUsers = ({
                       STATUS_CONFIG[u.accountStatus] || STATUS_CONFIG.pending;
                     const roleCfg = getRoleCfg(u.occupation);
                     const isPending = u.accountStatus === "pending";
+                    const profileLink = getProfileLink(u.id);
+                    const isCopied = copiedUserId === u.id;
 
                     return (
                       <tr
@@ -870,32 +894,68 @@ const AdminUsers = ({
                           </span>
                         </td>
 
-                        {/* Phone */}
+                        {/* NFC Link - New Column */}
                         <td style={tdStyle}>
-                          <span
+                          <div
                             style={{
-                              fontSize: "0.78rem",
-                              color: dm ? "#94a3b8" : "#64748b",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              flexWrap: "nowrap",
                             }}
                           >
-                            {u.phoneNumber || "—"}
-                          </span>
+                            <code
+                              style={{
+                                fontSize: "0.65rem",
+                                color: dm ? "#94a3b8" : "#475569",
+                                background: dm ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.04)",
+                                padding: "0.25rem 0.4rem",
+                                borderRadius: "0.25rem",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                maxWidth: "180px",
+                                fontFamily: "monospace",
+                              }}
+                            >
+                              {profileLink}
+                            </code>
+                            <button
+                              onClick={() => copyToClipboard(profileLink, u.id)}
+                              style={{
+                                ...copyBtnStyle,
+                                background: isCopied
+                                  ? "#22c55e"
+                                  : dm
+                                    ? "rgba(59,130,246,0.15)"
+                                    : "rgba(59,130,246,0.1)",
+                                color: isCopied ? "white" : "#3b82f6",
+                                border: isCopied ? "1px solid #22c55e" : undefined,
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isCopied) {
+                                  e.currentTarget.style.background = "rgba(59,130,246,0.25)";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isCopied) {
+                                  e.currentTarget.style.background = dm
+                                    ? "rgba(59,130,246,0.15)"
+                                    : "rgba(59,130,246,0.1)";
+                                }
+                              }}
+                            >
+                              {isCopied ? (
+                                <Check size={10} />
+                              ) : (
+                                <Copy size={10} />
+                              )}
+                              {isCopied ? "Copied!" : "Copy"}
+                            </button>
+                          </div>
                         </td>
 
-                        {/* Joined */}
-                        <td style={tdStyle}>
-                          <span
-                            style={{
-                              fontSize: "0.72rem",
-                              color: dm ? "#475569" : "#94a3b8",
-                              fontFamily: "monospace",
-                            }}
-                          >
-                            {formatDate(u.createdAt)}
-                          </span>
-                        </td>
-
-                        {/* Actions - FIXED: Removed approve button for rejected users */}
+                        {/* Actions */}
                         <td style={tdStyle}>
                           <div
                             style={{
@@ -914,15 +974,6 @@ const AdminUsers = ({
                                   }}
                                   onClick={() => openConfirmModal(u, "approve")}
                                   disabled={actionLoading === u.id}
-                                  onMouseEnter={(e) => {
-                                    if (actionLoading !== u.id)
-                                      e.currentTarget.style.background =
-                                        "#16a34a";
-                                  }}
-                                  onMouseLeave={(e) =>
-                                    (e.currentTarget.style.background =
-                                      "#22c55e")
-                                  }
                                 >
                                   <CheckCircle2 size={11} /> Approve
                                 </button>
@@ -933,15 +984,6 @@ const AdminUsers = ({
                                   }}
                                   onClick={() => openConfirmModal(u, "reject")}
                                   disabled={actionLoading === u.id}
-                                  onMouseEnter={(e) => {
-                                    if (actionLoading !== u.id)
-                                      e.currentTarget.style.background =
-                                        "#dc2626";
-                                  }}
-                                  onMouseLeave={(e) =>
-                                    (e.currentTarget.style.background =
-                                      "#ef4444")
-                                  }
                                 >
                                   <XCircle size={11} /> Reject
                                 </button>
@@ -955,19 +997,10 @@ const AdminUsers = ({
                                 }}
                                 onClick={() => openConfirmModal(u, "delete")}
                                 disabled={actionLoading === u.id}
-                                onMouseEnter={(e) => {
-                                  if (actionLoading !== u.id)
-                                    e.currentTarget.style.background =
-                                      "#dc2626";
-                                }}
-                                onMouseLeave={(e) =>
-                                  (e.currentTarget.style.background = "#ef4444")
-                                }
                               >
                                 <Trash2 size={11} /> Delete
                               </button>
                             )}
-                            {/* Removed the approve button for rejected users */}
 
                             {actionLoading === u.id && (
                               <div
@@ -1011,13 +1044,13 @@ const AdminUsers = ({
               color: dm ? "#475569" : "#94a3b8",
             }}
           >
-            SHOWING {filteredUsers.length} OF {users.length} USERS
+            {/* SHOWING {filteredUsers.length} OF {users.length} USERSss */}
           </span>
           <div style={{ display: "flex", gap: "1rem" }}>
             {[
-              { label: "Pending", key: "pending", color: "#fbbf24" },
-              { label: "Active", key: "approved", color: "#34d399" },
-              { label: "Rejected", key: "rejected", color: "#f87171" },
+              // { label: "Pending", key: "pending", color: "#fbbf24" },
+              // { label: "Active", key: "approved", color: "#34d399" },
+              // { label: "Rejected", key: "rejected", color: "#f87171" },
             ].map((s) => (
               <div
                 key={s.key}
@@ -1073,7 +1106,6 @@ const AdminUsers = ({
               boxShadow: "0 32px 64px rgba(0,0,0,0.5)",
             }}
           >
-            {/* Icon */}
             <div
               style={{
                 width: 44,

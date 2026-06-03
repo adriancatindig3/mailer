@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import FloatingConnectForm from "../components/FloatingConnectForm";
+import AccountNotFound from "../status/AccountNotFound";
 import {
   Layout1,
   Layout2,
@@ -20,6 +21,7 @@ const PublicProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [schoolLogo, setSchoolLogo] = useState("/CCC.png");
+  const [accountStatus, setAccountStatus] = useState(null);
   const { userId } = useParams();
   const navigate = useNavigate();
 
@@ -125,6 +127,17 @@ const PublicProfile = () => {
           return;
         }
         const data = userDoc.data();
+
+        // Check account status - ONLY show if approved
+        const status = data.accountStatus;
+        setAccountStatus(status);
+
+        // If not approved, don't load user data
+        if (status !== "approved") {
+          setLoading(false);
+          return;
+        }
+
         const allSocialLinks = {
           facebook: data.socialLinks?.facebook || "",
           twitter: data.socialLinks?.twitter || "",
@@ -182,38 +195,11 @@ const PublicProfile = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
-        <div className="bg-gray-800/50 backdrop-blur-md border border-gray-700/30 rounded-2xl p-8 max-w-md text-center">
-          <div className="w-12 h-12 rounded-full bg-red-900/30 border border-red-700/50 flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-6 h-6 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-medium text-gray-100 mb-2">
-            Profile Not Found
-          </h2>
-          <p className="text-gray-400 mb-6">{error}</p>
-          <button
-            onClick={() => navigate("/")}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go Home
-          </button>
-        </div>
-      </div>
-    );
+  // Show AccountNotFound if:
+  // 1. There's no error but account status is not approved
+  // 2. Or if there's an error (user not found)
+  if (error || (accountStatus && accountStatus !== "approved")) {
+    return <AccountNotFound />;
   }
 
   if (!userData) return null;
@@ -254,10 +240,10 @@ const PublicProfile = () => {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="relative rounded-2xl overflow-hidden shadow-lg">
-            <SelectedLayout 
-              userData={userData} 
-              schoolLogo={schoolLogo} 
-              onConnect={() => setShowConnectForm(true)} 
+            <SelectedLayout
+              userData={userData}
+              schoolLogo={schoolLogo}
+              onConnect={() => setShowConnectForm(true)}
             />
           </div>
         </div>

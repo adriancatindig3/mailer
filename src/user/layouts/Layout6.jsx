@@ -23,10 +23,7 @@ const Layout6 = ({ userData, schoolLogo, onConnect }) => (
         style={{ background: "linear-gradient(135deg, #374151, #111827)" }}
       >
         {userData?.photoURL ? (
-          <img
-            src={userData.photoURL}
-            className="w-full h-full object-cover"
-          />
+          <img src={userData.photoURL} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-800 text-white text-xl font-bold">
             {getInitials(userData?.displayName)}

@@ -33,10 +33,7 @@ const Layout4 = ({ userData, schoolLogo, onConnect }) => (
         style={{ borderColor: "#0f1f0f", background: "#2a3f2a" }}
       >
         {userData?.photoURL ? (
-          <img
-            src={userData.photoURL}
-            className="w-full h-full object-cover"
-          />
+          <img src={userData.photoURL} className="w-full h-full object-cover" />
         ) : (
           <div
             className="w-full h-full flex items-center justify-center text-white text-xl font-bold"
@@ -63,7 +60,11 @@ const Layout4 = ({ userData, schoolLogo, onConnect }) => (
             className="flex items-center gap-2 text-xs mb-4"
             style={{ color: "rgba(255,255,255,0.55)" }}
           >
-            <SchoolLogo schoolLogo={schoolLogo} className="w-4 h-4" style={{ opacity: 0.8 }} />
+            <SchoolLogo
+              schoolLogo={schoolLogo}
+              className="w-4 h-4"
+              style={{ opacity: 0.8 }}
+            />
             <span>{userData.company}</span>
           </div>
         )}

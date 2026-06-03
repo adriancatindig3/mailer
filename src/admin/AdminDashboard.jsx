@@ -52,6 +52,7 @@ const AdminDashboard = () => {
     () => localStorage.getItem("adminActiveTab") || "users",
   );
   const [dynamicRoles, setDynamicRoles] = useState([]);
+  const [orphanRoles, setOrphanRoles] = useState([]); // Track roles that exist in users but not in roles collection
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -107,6 +108,7 @@ const AdminDashboard = () => {
     getCurrentUser();
   }, [navigate]);
 
+  // Fetch roles from database - NO HARDCODED FALLBACKS
   useEffect(() => {
     const fetchRoles = async () => {
       try {
@@ -118,35 +120,24 @@ const AdminDashboard = () => {
           q,
           (snapshot) => {
             if (!snapshot.empty) {
-              setDynamicRoles(
-                snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
-              );
+              const roles = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+              setDynamicRoles(roles);
             } else {
-              setDynamicRoles([
-                {
-                  id: "1",
-                  value: "teaching",
-                  label: "Teaching",
-                  color: "#3B82F6",
-                },
-                {
-                  id: "2",
-                  value: "non-teaching",
-                  label: "Non-Teaching",
-                  color: "#8B5CF6",
-                },
-                { id: "3", value: "alumni", label: "Alumni", color: "#F59E0B" },
-              ]);
+              // No roles found in database - empty array
+              setDynamicRoles([]);
+              console.warn("No roles found in database. Please add roles to the userRoles collection.");
             }
           },
           (error) => {
             console.error("Error fetching roles:", error);
+            setDynamicRoles([]);
           },
         );
 
         return () => unsubscribe();
       } catch (e) {
-        console.error(e);
+        console.error("Error in fetchRoles:", e);
+        setDynamicRoles([]);
       }
     };
     fetchRoles();
@@ -167,6 +158,7 @@ const AdminDashboard = () => {
           rejected = 0;
         const list = [];
         const roleCounts = {};
+        const userRolesSet = new Set(); // Track unique roles found in users
 
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
@@ -192,19 +184,43 @@ const AdminDashboard = () => {
           };
 
           list.push(u);
+          
+          // Count by occupation (which should match role.value from database)
           const occ = u.occupation?.toLowerCase().replace(/\s+/g, "-");
-          if (occ) roleCounts[occ] = (roleCounts[occ] || 0) + 1;
+          if (occ) {
+            roleCounts[occ] = (roleCounts[occ] || 0) + 1;
+            userRolesSet.add(occ);
+          }
 
           if (u.accountStatus === "pending") pending++;
           else if (u.accountStatus === "approved") approved++;
           else if (u.accountStatus === "rejected") rejected++;
         });
 
-        const roleStatsArray = (dynamicRoles || []).map((role) => ({
+        // Find orphan roles - roles that exist in users but not in dynamicRoles
+        const existingRoleValues = new Set(dynamicRoles.map(role => role.value));
+        const orphanRolesList = Array.from(userRolesSet)
+          .filter(roleValue => !existingRoleValues.has(roleValue))
+          .map(roleValue => ({
+            id: `orphan-${roleValue}`,
+            value: roleValue,
+            label: roleValue.split('-').map(word => 
+              word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' '), // Convert "non-teaching" to "Non Teaching"
+            color: "#9CA3AF", // Gray color for orphan roles
+            isOrphan: true // Mark as orphan role
+          }));
+        
+        setOrphanRoles(orphanRolesList);
+
+        // Build role stats including both dynamic roles and orphan roles
+        const allRolesForStats = [...dynamicRoles, ...orphanRolesList];
+        const roleStatsArray = allRolesForStats.map((role) => ({
           label: role.label,
           value: roleCounts[role.value] || 0,
           color: role.color || "#6B7280",
           icon: getRoleIcon(role.value),
+          isOrphan: role.isOrphan || false
         }));
 
         setUsers(list);
@@ -221,17 +237,26 @@ const AdminDashboard = () => {
     return () => unsubscribe();
   }, [user, dynamicRoles]);
 
+  // Dynamic icon mapping based on role value
   const getRoleIcon = (roleValue) => {
-    switch (roleValue) {
-      case "teaching":
-        return UserCheck;
-      case "non-teaching":
-        return Briefcase;
-      case "alumni":
-        return GraduationCap;
-      default:
-        return Users;
-    }
+    // You can customize this mapping based on your role naming convention
+    // Or store icon names in the database and map them dynamically
+    const iconMap = {
+      "teaching": UserCheck,
+      "non-teaching": Briefcase,
+      "alumni": GraduationCap,
+      "faculty": UserCheck,
+      "student": GraduationCap,
+      "staff": Briefcase,
+    };
+    
+    // Return mapped icon if exists, otherwise default Users icon
+    return iconMap[roleValue] || Users;
+  };
+
+  // Combine dynamic roles and orphan roles for components that need all roles
+  const getAllRoles = () => {
+    return [...dynamicRoles, ...orphanRoles];
   };
 
   const handleRefresh = async () => {
@@ -523,7 +548,7 @@ const AdminDashboard = () => {
               T={T}
               onRefresh={handleRefresh}
               currentUser={user}
-              dynamicRoles={dynamicRoles}
+              dynamicRoles={getAllRoles()} // Pass all roles including orphans
             />
           )}
 
@@ -534,7 +559,7 @@ const AdminDashboard = () => {
               users={users}
               darkMode={darkMode}
               T={T}
-              dynamicRoles={dynamicRoles}
+              dynamicRoles={getAllRoles()} // Pass all roles including orphans
             />
           )}
 

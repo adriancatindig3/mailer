@@ -28,10 +28,7 @@ const Layout5 = ({ userData, schoolLogo, onConnect }) => (
         }}
       >
         {userData?.photoURL ? (
-          <img
-            src={userData.photoURL}
-            className="w-full h-full object-cover"
-          />
+          <img src={userData.photoURL} className="w-full h-full object-cover" />
         ) : (
           <div
             className="w-full h-full flex items-center justify-center text-white text-xl font-bold"
@@ -46,10 +43,7 @@ const Layout5 = ({ userData, schoolLogo, onConnect }) => (
           {userData?.displayName}
         </h1>
         {userData?.occupation && (
-          <p
-            className="text-sm font-medium mb-1"
-            style={{ color: "#93b4d4" }}
-          >
+          <p className="text-sm font-medium mb-1" style={{ color: "#93b4d4" }}>
             {userData.occupation}
           </p>
         )}

@@ -19,8 +19,15 @@ function ViewQr({ darkMode }) {
   const [downloading, setDownloading] = useState(false);
   const qrFloatingBoxRef = useRef(null);
 
-  const getProfileUrl = (userId) =>
-    `https://ccc-e-card.netlify.app/profile/${userId}`;
+  // const getProfileUrl = (userId) =>
+  //   `https://ccc-e-card.netlify.app/profile/${userId}`;
+
+  // hotdog
+  const getProfileUrl = (userId) => {
+    // Get current origin (https://yourdomain.com)
+    const origin = window.location.origin;
+    return `${origin}/profile/${userId}`;
+  };
 
   // Function to convert oklch to rgb
   const convertOklchToRgb = (oklchString) => {

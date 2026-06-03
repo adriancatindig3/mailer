@@ -7,10 +7,7 @@ const Layout9 = ({ userData, onConnect }) => (
     <div className="flex flex-col items-center pt-8 pb-4 px-4">
       <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-gray-200 mb-3">
         {userData?.photoURL ? (
-          <img
-            src={userData.photoURL}
-            className="w-full h-full object-cover"
-          />
+          <img src={userData.photoURL} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-700 text-white text-2xl font-medium">
             {getInitials(userData?.displayName)}
@@ -27,9 +24,7 @@ const Layout9 = ({ userData, onConnect }) => (
       </p>
 
       {userData?.bio && (
-        <p className="text-xs text-center text-gray-600 mb-4">
-          {userData.bio}
-        </p>
+        <p className="text-xs text-center text-gray-600 mb-4">{userData.bio}</p>
       )}
 
       <ConnectButton onClick={onConnect} dark={false} />
@@ -84,12 +79,8 @@ const Layout9 = ({ userData, onConnect }) => (
               <FaEnvelope className="text-white text-xs" />
             </div>
             <div className="flex-1">
-              <div className="text-xs font-medium text-gray-900">
-                Email me
-              </div>
-              <div className="text-[11px] text-gray-500">
-                {userData.email}
-              </div>
+              <div className="text-xs font-medium text-gray-900">Email me</div>
+              <div className="text-[11px] text-gray-500">{userData.email}</div>
             </div>
             <span className="text-xs text-gray-400">↗</span>
           </a>

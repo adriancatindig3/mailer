@@ -1,9 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  FaEnvelope,
-  FaCheckCircle,
-  FaTimes,
-} from "react-icons/fa";
+import { FaEnvelope, FaCheckCircle, FaTimes } from "react-icons/fa";
 
 const FloatingConnectForm = ({
   showConnectForm,

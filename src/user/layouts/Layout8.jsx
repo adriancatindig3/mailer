@@ -13,10 +13,7 @@ const Layout8 = ({ userData, onConnect }) => (
         style={{ borderColor: "rgba(255,255,255,0.2)" }}
       >
         {userData?.photoURL ? (
-          <img
-            src={userData.photoURL}
-            className="w-full h-full object-cover"
-          />
+          <img src={userData.photoURL} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-slate-700 text-white text-2xl font-medium">
             {getInitials(userData?.displayName)}
@@ -163,9 +160,7 @@ const Layout8 = ({ userData, onConnect }) => (
                 {getSocialIcon(p)}
               </div>
               <div className="flex-1">
-                <div className="text-xs font-medium capitalize">
-                  Follow me
-                </div>
+                <div className="text-xs font-medium capitalize">Follow me</div>
                 <div className="text-[11px] opacity-55">
                   {url.replace(/https?:\/\/(www\.)?/, "").split("/")[0]}
                 </div>

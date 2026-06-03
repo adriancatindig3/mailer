@@ -31,9 +31,7 @@ const Layout3 = ({ userData, schoolLogo, onConnect }) => (
           {userData?.company && (
             <div className="flex items-center gap-1 mt-1">
               <SchoolLogo schoolLogo={schoolLogo} className="w-3 h-3" />
-              <span className="text-xs text-gray-400">
-                {userData.company}
-              </span>
+              <span className="text-xs text-gray-400">{userData.company}</span>
             </div>
           )}
         </div>
@@ -52,10 +50,7 @@ const Layout3 = ({ userData, schoolLogo, onConnect }) => (
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-gray-900">
-            {
-              Object.values(userData?.socialLinks || {}).filter(Boolean)
-                .length
-            }
+            {Object.values(userData?.socialLinks || {}).filter(Boolean).length}
           </div>
           <div className="text-xs text-gray-400">Links</div>
         </div>
