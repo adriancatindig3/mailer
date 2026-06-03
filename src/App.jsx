@@ -10,9 +10,9 @@ import Home from "./user/pages/Home";
 import UpdateProfile from "./user/pages/UpdateProfile";
 import ViewQr from "./user/pages/ViewQr";
 import SelectLayout from "./user/pages/SelectLayout";
-import Pending from "./user/pages/Pending";
-import Rejected from "./user/pages/Rejected";
-import Deleted from "./user/pages/Deleted";
+import Pending from "./user/status/Pending";
+import Rejected from "./user/status/Rejected";
+import Deleted from "./user/status/Deleted";
 import AdminDashboard from "./admin/AdminDashboard";
 import PublicProfile from "./user/pages/PublicProfile";
 

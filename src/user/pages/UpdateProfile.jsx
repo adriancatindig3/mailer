@@ -315,19 +315,61 @@ const UpdateProfile = ({ darkMode, onSaveComplete }) => {
     }
   };
 
+  // const detectPlatform = (url) => {
+  //   if (!url) return "";
+  //   const u = url.toLowerCase();
+  //   if (u.includes("facebook.com") || u.includes("fb.com")) return "facebook";
+  //   if (u.includes("twitter.com") || u.includes("x.com")) return "twitter";
+  //   if (u.includes("instagram.com")) return "instagram";
+  //   if (u.includes("linkedin.com")) return "linkedin";
+  //   if (u.includes("github.com")) return "github";
+  //   if (u.includes("youtube.com") || u.includes("youtu.be")) return "youtube";
+  //   if (u.includes("tiktok.com")) return "tiktok";
+  //   if (u.startsWith("http") && !u.includes("@")) return "website";
+  //   return "other";
+  // };
+
   const detectPlatform = (url) => {
-    if (!url) return "";
-    const u = url.toLowerCase();
-    if (u.includes("facebook.com") || u.includes("fb.com")) return "facebook";
-    if (u.includes("twitter.com") || u.includes("x.com")) return "twitter";
-    if (u.includes("instagram.com")) return "instagram";
-    if (u.includes("linkedin.com")) return "linkedin";
-    if (u.includes("github.com")) return "github";
-    if (u.includes("youtube.com") || u.includes("youtu.be")) return "youtube";
-    if (u.includes("tiktok.com")) return "tiktok";
-    if (u.startsWith("http") && !u.includes("@")) return "website";
-    return "other";
-  };
+  if (!url) return "";
+  const u = url.toLowerCase();
+  
+  // Major platforms
+  if (u.includes("facebook.com") || u.includes("fb.com")) return "facebook";
+  if (u.includes("twitter.com") || u.includes("x.com")) return "twitter";
+  if (u.includes("instagram.com")) return "instagram";
+  if (u.includes("linkedin.com")) return "linkedin";
+  if (u.includes("github.com")) return "github";
+  if (u.includes("youtube.com") || u.includes("youtu.be")) return "youtube";
+  if (u.includes("tiktok.com")) return "tiktok";
+  if (u.includes("pinterest.com")) return "pinterest";
+  if (u.includes("reddit.com")) return "reddit";
+  if (u.includes("snapchat.com")) return "snapchat";
+  if (u.includes("whatsapp.com")) return "whatsapp";
+  if (u.includes("telegram.org") || u.includes("t.me")) return "telegram";
+  if (u.includes("discord.com") || u.includes("discord.gg")) return "discord";
+  if (u.includes("twitch.tv")) return "twitch";
+  if (u.includes("medium.com")) return "medium";
+  if (u.includes("quora.com")) return "quora";
+  if (u.includes("dev.to")) return "dev";
+  if (u.includes("stackoverflow.com")) return "stackoverflow";
+  if (u.includes("behance.net")) return "behance";
+  if (u.includes("dribbble.com")) return "dribbble";
+  if (u.includes("figma.com")) return "figma";
+  if (u.includes("producthunt.com")) return "producthunt";
+  if (u.includes("spotify.com")) return "spotify";
+  if (u.includes("soundcloud.com")) return "soundcloud";
+  if (u.includes("vk.com")) return "vk";
+  if (u.includes("weixin.com") || u.includes("wechat.com")) return "wechat";
+  if (u.includes("line.me")) return "line";
+  if (u.includes("signal.org")) return "signal";
+  if (u.includes("mastodon.social")) return "mastodon";
+  if (u.includes("keybase.io")) return "keybase";
+  
+  // Website fallback
+  if (u.startsWith("http") && !u.includes("@")) return "website";
+  
+  return "other";
+};
 
   useEffect(() => {
     const fetchUserData = async () => {
