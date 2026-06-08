@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Email - eCARD</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #1a472a;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #2c5f2d;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        h2 {
+            color: #1a472a;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📧 Test eCARD Email</h2>
+        <form id="emailForm">
+            <input type="text" id="visitorName" placeholder="Your Name" required>
+            <input type="email" id="visitorEmail" placeholder="Your Email" required>
+            <input type="text" id="visitorCompany" placeholder="Your Company (optional)">
+            <input type="text" id="visitorPhone" placeholder="Your Phone (optional)">
+            <textarea id="visitorMessage" rows="4" placeholder="Your Message" required></textarea>
+            <input type="email" id="ownerEmail" placeholder="Owner's Email" required>
+            <input type="text" id="ownerName" placeholder="Owner's Name" required>
+            <button type="submit">Send Email</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('emailForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                visitorName: document.getElementById('visitorName').value,
+                visitorEmail: document.getElementById('visitorEmail').value,
+                visitorCompany: document.getElementById('visitorCompany').value,
+                visitorPhone: document.getElementById('visitorPhone').value,
+                visitorMessage: document.getElementById('visitorMessage').value,
+                ownerEmail: document.getElementById('ownerEmail').value,
+                ownerName: document.getElementById('ownerName').value
+            };
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Sending...';
+            resultDiv.className = '';
+            
+            try {
+                const response = await fetch('http://localhost:3000/sendMail', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = '✅ Email sent successfully! Check your inbox.';
+                    resultDiv.className = 'success';
+                    document.getElementById('emailForm').reset();
+                } else {
+                    resultDiv.innerHTML = '❌ Error: ' + result.error;
+                    resultDiv.className = 'error';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '❌ Error: ' + error.message;
+                resultDiv.className = 'error';
+            }
+        };
+    </script>
+</body>
+</html>
